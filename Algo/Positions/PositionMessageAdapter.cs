@@ -17,6 +17,8 @@ namespace StockSharp.Algo.Positions
 {
 	using System;
 
+	using Ecng.Common;
+
 	using StockSharp.Messages;
 
 	/// <summary>
@@ -40,31 +42,18 @@ namespace StockSharp.Algo.Positions
 		/// </summary>
 		public IPositionManager PositionManager
 		{
-			get { return _positionManager; }
-			set
-			{
-				if (value == null)
-					throw new ArgumentNullException(nameof(value));
-
-				_positionManager = value;
-			}
+			get => _positionManager;
+			set => _positionManager = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
-		/// <summary>
-		/// Send message.
-		/// </summary>
-		/// <param name="message">Message.</param>
-		public override void SendInMessage(Message message)
+		/// <inheritdoc />
+		protected override bool OnSendInMessage(Message message)
 		{
 			PositionManager.ProcessMessage(message);
-
-			base.SendInMessage(message);
+			return base.OnSendInMessage(message);
 		}
 
-		/// <summary>
-		/// Process <see cref="MessageAdapterWrapper.InnerAdapter"/> output message.
-		/// </summary>
-		/// <param name="message">The message.</param>
+		/// <inheritdoc />
 		protected override void OnInnerAdapterNewOutMessage(Message message)
 		{
 			var position = PositionManager.ProcessMessage(message);
@@ -81,7 +70,7 @@ namespace StockSharp.Algo.Positions
 		/// <returns>Copy.</returns>
 		public override IMessageChannel Clone()
 		{
-			return new PositionMessageAdapter((IMessageAdapter)InnerAdapter.Clone());
+			return new PositionMessageAdapter(InnerAdapter.TypedClone());
 		}
 	}
 }

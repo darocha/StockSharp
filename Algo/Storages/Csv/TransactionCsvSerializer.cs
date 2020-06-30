@@ -37,17 +37,12 @@ namespace StockSharp.Algo.Storages.Csv
 		{
 		}
 
-		/// <summary>
-		/// Write data to the specified writer.
-		/// </summary>
-		/// <param name="writer">CSV writer.</param>
-		/// <param name="data">Data.</param>
-		/// <param name="metaInfo">Meta-information on data for one day.</param>
+		/// <inheritdoc />
 		protected override void Write(CsvFileWriter writer, ExecutionMessage data, IMarketDataMetaInfo metaInfo)
 		{
 			var row = new[]
 			{
-				data.ServerTime.UtcDateTime.ToString(TimeFormat),
+				data.ServerTime.WriteTimeMls(),
 				data.ServerTime.ToString("zzz"),
 				data.TransactionId.ToString(),
 				data.OriginalTransactionId.ToString(),
@@ -79,10 +74,10 @@ namespace StockSharp.Algo.Storages.Csv
 				data.Currency.ToString(),
 				data.Comment,
 				data.SystemComment,
-				data.DerivedOrderId.ToString(),
-				data.DerivedOrderStringId,
+				/*data.DerivedOrderId.ToString()*/string.Empty,
+				/*data.DerivedOrderStringId*/string.Empty,
 				data.IsUpTick.ToString(),
-				data.IsCancelled.ToString(),
+				/*data.IsCancellation.ToString()*/string.Empty,
 				data.OpenInterest.ToString(),
 				data.PnL.ToString(),
 				data.Position.ToString(),
@@ -91,28 +86,34 @@ namespace StockSharp.Algo.Storages.Csv
 				data.OrderStatus.ToString(),
 				data.Latency?.Ticks.ToString(),
 				data.Error?.Message,
-				data.ExpiryDate?.UtcDateTime.ToString(DateFormat),
-				data.ExpiryDate?.UtcDateTime.ToString(TimeFormat),
-				data.ExpiryDate?.ToString("zzz")
+				data.ExpiryDate?.WriteDate(),
+				data.ExpiryDate?.WriteTimeMls(),
+				data.ExpiryDate?.ToString("zzz"),
+				data.LocalTime.WriteTimeMls(),
+				data.LocalTime.ToString("zzz"),
+				data.IsMarketMaker.ToString(),
+				data.CommissionCurrency,
+				data.IsMargin.ToString(),
+				data.IsManual.ToString(),
+				data.MinVolume.To<string>(),
+				data.PositionEffect.To<string>(),
+				data.PostOnly.To<string>(),
+				data.Initiator.To<string>(),
+				data.SeqNum.To<string>(),
 			};
 			writer.WriteRow(row);
 
 			metaInfo.LastTime = data.ServerTime.UtcDateTime;
 		}
 
-		/// <summary>
-		/// Load data from the specified reader.
-		/// </summary>
-		/// <param name="reader">CSV reader.</param>
-		/// <param name="date">Date.</param>
-		/// <returns>Data.</returns>
-		protected override ExecutionMessage Read(FastCsvReader reader, DateTime date)
+		/// <inheritdoc />
+		protected override ExecutionMessage Read(FastCsvReader reader, IMarketDataMetaInfo metaInfo)
 		{
 			var msg = new ExecutionMessage
 			{
 				SecurityId = SecurityId,
 				ExecutionType = ExecutionTypes.Transaction,
-				ServerTime = ReadTime(reader, date),
+				ServerTime = reader.ReadTime(metaInfo.Date),
 				TransactionId = reader.ReadLong(),
 				OriginalTransactionId = reader.ReadLong(),
 				OrderId = reader.ReadNullableLong(),
@@ -143,18 +144,22 @@ namespace StockSharp.Algo.Storages.Csv
 				Currency = reader.ReadNullableEnum<CurrencyTypes>(),
 				Comment = reader.ReadString(),
 				SystemComment = reader.ReadString(),
-				DerivedOrderId = reader.ReadNullableLong(),
-				DerivedOrderStringId = reader.ReadString(),
-				IsUpTick = reader.ReadNullableBool(),
-				IsCancelled = reader.ReadBool(),
-				OpenInterest = reader.ReadNullableDecimal(),
-				PnL = reader.ReadNullableDecimal(),
-				Position = reader.ReadNullableDecimal(),
-				Slippage = reader.ReadNullableDecimal(),
-				TradeStatus = reader.ReadNullableInt(),
-				OrderStatus = reader.ReadNullableLong(),
-				Latency = reader.ReadNullableLong().To<TimeSpan?>(),
+				//DerivedOrderId = reader.ReadNullableLong(),
+				//DerivedOrderStringId = reader.ReadString(),
 			};
+
+			reader.ReadNullableLong();
+			reader.ReadString();
+
+			msg.IsUpTick = reader.ReadNullableBool();
+			/*msg.IsCancellation = */reader.ReadBool();
+			msg.OpenInterest = reader.ReadNullableDecimal();
+			msg.PnL = reader.ReadNullableDecimal();
+			msg.Position = reader.ReadNullableDecimal();
+			msg.Slippage = reader.ReadNullableDecimal();
+			msg.TradeStatus = reader.ReadNullableInt();
+			msg.OrderStatus = reader.ReadNullableLong();
+			msg.Latency = reader.ReadNullableLong().To<TimeSpan?>();
 
 			var error = reader.ReadString();
 
@@ -165,10 +170,33 @@ namespace StockSharp.Algo.Storages.Csv
 
 			if (dtStr != null)
 			{
-				msg.ExpiryDate = (DateParser.Parse(dtStr) + TimeParser.Parse(reader.ReadString())).ToDateTimeOffset(TimeSpan.Parse(reader.ReadString().Remove("+")));
+				msg.ExpiryDate = (dtStr.ToDateTime() + reader.ReadString().ToTimeMls()).ToDateTimeOffset(TimeSpan.Parse(reader.ReadString().Remove("+")));
 			}
 			else
 				reader.Skip(2);
+
+			msg.LocalTime = reader.ReadTime(metaInfo.Date);
+			msg.IsMarketMaker = reader.ReadNullableBool();
+
+			if ((reader.ColumnCurr + 1) < reader.ColumnCount)
+				msg.CommissionCurrency = reader.ReadString();
+
+			if ((reader.ColumnCurr + 1) < reader.ColumnCount)
+			{
+				msg.IsMargin = reader.ReadNullableBool();
+				msg.IsManual = reader.ReadNullableBool();
+			}
+
+			if ((reader.ColumnCurr + 1) < reader.ColumnCount)
+			{
+				msg.MinVolume = reader.ReadNullableDecimal();
+				msg.PositionEffect = reader.ReadNullableEnum<OrderPositionEffects>();
+				msg.PostOnly = reader.ReadNullableBool();
+				msg.Initiator = reader.ReadNullableBool();
+			}
+
+			if ((reader.ColumnCurr + 1) < reader.ColumnCount)
+				msg.SeqNum = reader.ReadLong();
 
 			return msg;
 		}

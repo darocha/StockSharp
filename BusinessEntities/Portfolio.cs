@@ -16,6 +16,7 @@ Copyright 2010 by StockSharp, LLC
 namespace StockSharp.BusinessEntities
 {
 	using System;
+	using System.ComponentModel;
 	using System.Runtime.Serialization;
 
 	using Ecng.Serialization;
@@ -30,7 +31,7 @@ namespace StockSharp.BusinessEntities
 	[System.Runtime.Serialization.DataContract]
 	[DisplayNameLoc(LocalizedStrings.PortfolioKey)]
 	[DescriptionLoc(LocalizedStrings.Str541Key)]
-	public class Portfolio : BasePosition
+	public class Portfolio : Position
 	{
 		/// <summary>
 		/// Initializes a new instance of the <see cref="Portfolio"/>.
@@ -51,7 +52,7 @@ namespace StockSharp.BusinessEntities
 		[MainCategory]
 		public string Name
 		{
-			get { return _name; }
+			get => _name;
 			set
 			{
 				if (_name == value)
@@ -59,29 +60,6 @@ namespace StockSharp.BusinessEntities
 
 				_name = value;
 				NotifyChanged(nameof(Name));
-			}
-		}
-
-		private decimal? _leverage;
-
-		/// <summary>
-		/// Margin leverage.
-		/// </summary>
-		[DataMember]
-		[DisplayNameLoc(LocalizedStrings.Str542Key)]
-		[DescriptionLoc(LocalizedStrings.Str261Key, true)]
-		[MainCategory]
-		[Nullable]
-		public decimal? Leverage
-		{
-			get { return _leverage; }
-			set
-			{
-				if (_leverage == value)
-					return;
-
-				_leverage = value;
-				NotifyChanged(nameof(Leverage));
 			}
 		}
 
@@ -121,9 +99,10 @@ namespace StockSharp.BusinessEntities
 		[DescriptionLoc(LocalizedStrings.Str252Key)]
 		[MainCategory]
 		[Nullable]
+		[Browsable(false)]
 		public PortfolioStates? State
 		{
-			get { return _state; }
+			get => _state;
 			set
 			{
 				if (_state == value)
@@ -134,23 +113,23 @@ namespace StockSharp.BusinessEntities
 			}
 		}
 
-		private static readonly Portfolio _anonymousPortfolio = new Portfolio { Name = LocalizedStrings.Str545 };
-
 		/// <summary>
 		/// Portfolio associated with the orders received through the orders log.
 		/// </summary>
-		public static Portfolio AnonymousPortfolio => _anonymousPortfolio;
+		public static Portfolio AnonymousPortfolio { get; } = new Portfolio
+		{
+			Name = Extensions.AnonymousPortfolioName,
+		};
 
 		/// <summary>
-		/// Create a copy of <see cref="Portfolio"/>.
+		/// Create virtual portfolio for simulation.
 		/// </summary>
-		/// <returns>Copy.</returns>
-		public Portfolio Clone()
+		/// <returns>Simulator.</returns>
+		public static Portfolio CreateSimulator() => new Portfolio
 		{
-			var clone = new Portfolio();
-			CopyTo(clone);
-			return clone;
-		}
+			Name = Extensions.SimulatorPortfolioName,
+			BeginValue = 1000000,
+		};
 
 		/// <summary>
 		/// To copy the current portfolio fields to the <paramref name="destination" />.
@@ -162,19 +141,22 @@ namespace StockSharp.BusinessEntities
 
 			destination.Name = Name;
 			destination.Board = Board;
-			destination.Currency = Currency;
-			destination.Leverage = Leverage;
 			//destination.Connector = Connector;
 			destination.State = State;
 		}
 
-		/// <summary>
-		/// Returns a string that represents the current object.
-		/// </summary>
-		/// <returns>A string that represents the current object.</returns>
+		/// <inheritdoc />
 		public override string ToString()
 		{
 			return Name;
+		}
+
+		/// <inheritdoc />
+		public override Position Clone()
+		{
+			var clone = new Portfolio();
+			CopyTo(clone);
+			return clone;
 		}
 	}
 }

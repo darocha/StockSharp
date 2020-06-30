@@ -42,34 +42,21 @@ namespace StockSharp.Algo.Latency
 		/// </summary>
 		public ILatencyManager LatencyManager
 		{
-			get { return _latencyManager; }
-			set
-			{
-				if (value == null)
-					throw new ArgumentNullException(nameof(value));
-
-				_latencyManager = value;
-			}
+			get => _latencyManager;
+			set => _latencyManager = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
-		/// <summary>
-		/// Send message.
-		/// </summary>
-		/// <param name="message">Message.</param>
-		public override void SendInMessage(Message message)
+		/// <inheritdoc />
+		protected override bool OnSendInMessage(Message message)
 		{
-			if (message.LocalTime.IsDefault())
-				message.LocalTime = InnerAdapter.CurrentTime;
+			message.TryInitLocalTime(this);
 
 			LatencyManager.ProcessMessage(message);
 
-			base.SendInMessage(message);
+			return base.OnSendInMessage(message);
 		}
 
-		/// <summary>
-		/// Process <see cref="MessageAdapterWrapper.InnerAdapter"/> output message.
-		/// </summary>
-		/// <param name="message">The message.</param>
+		/// <inheritdoc />
 		protected override void OnInnerAdapterNewOutMessage(Message message)
 		{
 			ProcessExecution(message);
@@ -99,7 +86,7 @@ namespace StockSharp.Algo.Latency
 		/// <returns>Copy.</returns>
 		public override IMessageChannel Clone()
 		{
-			return new LatencyMessageAdapter((IMessageAdapter)InnerAdapter.Clone());
+			return new LatencyMessageAdapter(InnerAdapter.TypedClone());
 		}
 	}
 }

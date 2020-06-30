@@ -19,8 +19,7 @@ namespace StockSharp.Messages
 	using System.Collections.Generic;
 	using System.Linq;
 	using System.Runtime.Serialization;
-
-	using DevExpress.Mvvm.DataAnnotations;
+	using System.Xml.Serialization;
 
 	using Ecng.Common;
 	using Ecng.ComponentModel;
@@ -37,19 +36,6 @@ namespace StockSharp.Messages
 	[DescriptionLoc(LocalizedStrings.Str417Key)]
 	public class WorkingTimePeriod : Cloneable<WorkingTimePeriod>, IPersistable
 	{
-		sealed class TimeSpanRangeInitializer : NewItemInstanceInitializerAttribute
-		{
-			public TimeSpanRangeInitializer()
-				: base(typeof(Range<TimeSpan>), "item")
-			{
-			}
-
-			public override object CreateInstance()
-			{
-				return new Range<TimeSpan>(TimeSpan.Zero, TimeSpan.Zero);
-			}
-		}
-
 		/// <summary>
 		/// Schedule expiration date.
 		/// </summary>
@@ -68,17 +54,22 @@ namespace StockSharp.Messages
 		[CategoryLoc(LocalizedStrings.GeneralKey)]
 		[DisplayNameLoc(LocalizedStrings.Str416Key)]
 		[DescriptionLoc(LocalizedStrings.Str420Key)]
-		[TimeSpanRangeInitializer]
 		public List<Range<TimeSpan>> Times
 		{
-			get { return _times; }
-			set
-			{
-				if (value == null)
-					throw new ArgumentNullException(nameof(value));
+			get => _times;
+			set => _times = value ?? throw new ArgumentNullException(nameof(value));
+		}
 
-				_times = value;
-			}
+		private IDictionary<DayOfWeek, Range<TimeSpan>[]> _specialDays = new Dictionary<DayOfWeek, Range<TimeSpan>[]>();
+
+		/// <summary>
+		/// Work schedule for days with different from <see cref="Times"/> schedules.
+		/// </summary>
+		[XmlIgnore]
+		public IDictionary<DayOfWeek, Range<TimeSpan>[]> SpecialDays
+		{
+			get => _specialDays;
+			set => _specialDays = value ?? throw new ArgumentNullException(nameof(value));
 		}
 
 		/// <summary>
@@ -91,6 +82,7 @@ namespace StockSharp.Messages
 			{
 				Till = Till,
 				Times = Times.Select(t => t.Clone()).ToList(),
+				SpecialDays = SpecialDays.ToDictionary(p => p.Key, p => p.Value.ToArray()),
 			};
 		}
 
@@ -102,6 +94,9 @@ namespace StockSharp.Messages
 		{
 			Times = storage.GetValue<List<Range<TimeSpan>>>(nameof(Times));
 			Till = storage.GetValue<DateTime>(nameof(Till));
+
+			if (storage.ContainsKey(nameof(SpecialDays)))
+				SpecialDays = storage.GetValue<IDictionary<DayOfWeek, Range<TimeSpan>[]>>(nameof(SpecialDays));
 		}
 
 		/// <summary>
@@ -112,17 +107,13 @@ namespace StockSharp.Messages
 		{
 			storage.SetValue(nameof(Times), Times);
 			storage.SetValue(nameof(Till), Till);
+			storage.SetValue(nameof(SpecialDays), SpecialDays);
 		}
 
-		/// <summary>
-		/// Returns a <see cref="T:System.String"/> that represents the current <see cref="T:System.Object"/>.
-		/// </summary>
-		/// <returns>
-		/// A <see cref="T:System.String"/> that represents the current <see cref="T:System.Object"/>.
-		/// </returns>
+		/// <inheritdoc />
 		public override string ToString()
 		{
-			return Times.Select(t => t.ToString()).Join(",");
+			return Times.Select(t => t.ToString()).JoinComma();
 		}
 	}
 }

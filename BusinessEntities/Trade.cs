@@ -102,7 +102,7 @@ namespace StockSharp.BusinessEntities
 		public DateTimeOffset LocalTime { get; set; }
 
 		/// <summary>
-		/// Number of contracts in a trade.
+		/// Number of contracts in the trade.
 		/// </summary>
 		[DataMember]
 		[Display(
@@ -198,14 +198,9 @@ namespace StockSharp.BusinessEntities
 		public CurrencyTypes? Currency { get; set; }
 
 		[field: NonSerialized]
-		private IDictionary<object, object> _extensionInfo;
+		private IDictionary<string, object> _extensionInfo;
 
-		/// <summary>
-		/// Extended trade info.
-		/// </summary>
-		/// <remarks>
-		/// Required if additional information associated with the trade is stored in the program. For example, the operation that results to the trade.
-		/// </remarks>
+		/// <inheritdoc />
 		[Ignore]
 		[XmlIgnore]
 		[Display(
@@ -214,10 +209,11 @@ namespace StockSharp.BusinessEntities
 			Description = LocalizedStrings.Str427Key,
 			GroupName = LocalizedStrings.GeneralKey,
 			Order = 8)]
-		public IDictionary<object, object> ExtensionInfo
+		[Obsolete]
+		public IDictionary<string, object> ExtensionInfo
 		{
-			get { return _extensionInfo; }
-			set { _extensionInfo = value; }
+			get => _extensionInfo;
+			set => _extensionInfo = value;
 		}
 
 		/// <summary>
@@ -253,13 +249,11 @@ namespace StockSharp.BusinessEntities
 			return (Security?.GetHashCode() ?? 0) ^ Id.GetHashCode();
 		}
 
-		/// <summary>
-		/// Returns a string that represents the current object.
-		/// </summary>
-		/// <returns>A string that represents the current object.</returns>
+		/// <inheritdoc />
 		public override string ToString()
 		{
-			return "{0} {1} {2} {3}".Put(Time, Id, Price, Volume);
+			var idStr = Id == 0 ? StringId : Id.To<string>();
+			return $"{Time} {idStr} {Price} {Volume}";
 		}
 	}
 }

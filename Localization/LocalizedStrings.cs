@@ -16,10 +16,26 @@ Copyright 2010 by StockSharp, LLC
 namespace StockSharp.Localization
 {
 	using System;
-	using System.Globalization;
+	using System.Diagnostics;
+	using System.IO;
 
-	using Ecng.Common;
 	using Ecng.Localization;
+
+	/// <summary>
+	/// Extension for <see cref="LocalizedStrings"/>.
+	/// </summary>
+	public static class LocalizedStringsExtension
+	{
+		/// <summary>
+		/// 
+		/// </summary>
+		public static Func<Stream> GetResourceStream = () =>
+		{
+			var asmHolder = typeof(LocalizedStrings).Assembly;
+
+			return asmHolder.GetManifestResourceStream($"{asmHolder.GetName().Name}.{Path.GetFileName("text.csv")}");
+		};
+	}
 
 	/// <summary>
 	/// Localized strings.
@@ -28,22 +44,28 @@ namespace StockSharp.Localization
 	{
 		static LocalizedStrings()
 		{
-			var activeLang = CultureInfo.CurrentCulture.Name.CompareIgnoreCase(LocalizationHelper.Ru)
-				? Languages.Russian
-				: Languages.English;
-
-			LocalizationHelper.DefaultManager = new LocalizationManager(typeof(LocalizedStrings).Assembly, "text.csv") { ActiveLanguage = activeLang };
+			try
+			{
+				LocalizationManager.Init(LocalizedStringsExtension.GetResourceStream());
+			}
+			catch (Exception ex)
+			{
+				Trace.WriteLine(ex);
+			}
 		}
 
-		private static LocalizationManager Manager => LocalizationHelper.DefaultManager;
+		/// <summary>
+		/// Localization manager.
+		/// </summary>
+		public static LocalizationManager LocalizationManager => LocalizationHelper.DefaultManager;
 
 		/// <summary>
 		/// Error handler to track missed translations or resource keys.
 		/// </summary>
 		public static event Action<string, bool> Missing
 		{
-			add { Manager.Missing += value; }
-			remove { Manager.Missing -= value; }
+			add => LocalizationManager.Missing += value;
+			remove => LocalizationManager.Missing -= value;
 		}
 
 		/// <summary>
@@ -51,8 +73,8 @@ namespace StockSharp.Localization
 		/// </summary>
 		public static Languages ActiveLanguage
 		{
-			get { return Manager.ActiveLanguage; }
-			set { Manager.ActiveLanguage = value; }
+			get => LocalizationManager.ActiveLanguage;
+			set => LocalizationManager.ActiveLanguage = value;
 		}
 
 		/// <summary>
@@ -63,7 +85,12 @@ namespace StockSharp.Localization
 		/// <returns>Localized string.</returns>
 		public static string GetString(string resourceId, Languages? language = null)
 		{
-			return Manager.GetString(resourceId, language);
+			return LocalizationManager.GetString(resourceId, language);
 		}
+
+		/// <summary>
+		/// Web site domain.
+		/// </summary>
+		public static string Domain => ActiveLanguage == Languages.Russian ? "ru" : "com";
 	}
 }

@@ -24,6 +24,7 @@ namespace StockSharp.BusinessEntities
 
 	using Ecng.Collections;
 	using Ecng.Common;
+	using Ecng.ComponentModel;
 	using Ecng.Serialization;
 
 	using StockSharp.Messages;
@@ -45,7 +46,7 @@ namespace StockSharp.BusinessEntities
 		{
 		}
 
-		private string _id = string.Empty;
+		private string _id;
 
 		/// <summary>
 		/// Security ID.
@@ -61,7 +62,7 @@ namespace StockSharp.BusinessEntities
 			Order = 0)]
 		public string Id
 		{
-			get { return _id; }
+			get => _id;
 			set
 			{
 				if (_id == value)
@@ -72,7 +73,7 @@ namespace StockSharp.BusinessEntities
 			}
 		}
 
-		private string _code = string.Empty;
+		private string _code;
 
 		/// <summary>
 		/// Security code.
@@ -84,9 +85,10 @@ namespace StockSharp.BusinessEntities
 			Description = LocalizedStrings.Str349Key + LocalizedStrings.Dot,
 			GroupName = LocalizedStrings.GeneralKey,
 			Order = 1)]
+		[Required(AllowEmptyStrings = false)]
 		public string Code
 		{
-			get { return _code; }
+			get => _code;
 			set
 			{
 				if (_code == value)
@@ -110,9 +112,10 @@ namespace StockSharp.BusinessEntities
 			Description = LocalizedStrings.Str549Key,
 			GroupName = LocalizedStrings.GeneralKey,
 			Order = 2)]
-		public ExchangeBoard Board
+		[Required]
+		public virtual ExchangeBoard Board
 		{
-			get { return _board; }
+			get => _board;
 			set
 			{
 				if (_board == value)
@@ -136,9 +139,9 @@ namespace StockSharp.BusinessEntities
 			Description = LocalizedStrings.Str360Key,
 			GroupName = LocalizedStrings.GeneralKey,
 			Order = 3)]
-		public SecurityTypes? Type
+		public virtual SecurityTypes? Type
 		{
-			get { return _type; }
+			get => _type;
 			set
 			{
 				if (_type == value)
@@ -149,7 +152,7 @@ namespace StockSharp.BusinessEntities
 			}
 		}
 
-		private string _name = string.Empty;
+		private string _name;
 
 		/// <summary>
 		/// Security name.
@@ -163,7 +166,7 @@ namespace StockSharp.BusinessEntities
 			Order = 4)]
 		public string Name
 		{
-			get { return _name; }
+			get => _name;
 			set
 			{
 				if (_name == value)
@@ -174,7 +177,7 @@ namespace StockSharp.BusinessEntities
 			}
 		}
 
-		private string _shortName = string.Empty;
+		private string _shortName;
 
 		/// <summary>
 		/// Short security name.
@@ -188,7 +191,7 @@ namespace StockSharp.BusinessEntities
 			Order = 5)]
 		public string ShortName
 		{
-			get { return _shortName; }
+			get => _shortName;
 			set
 			{
 				if (_shortName == value)
@@ -212,9 +215,10 @@ namespace StockSharp.BusinessEntities
 			Description = LocalizedStrings.Str382Key,
 			GroupName = LocalizedStrings.GeneralKey,
 			Order = 6)]
+		[EditorExtension(AutoComplete = true, Sorted = true)]
 		public CurrencyTypes? Currency
 		{
-			get { return _currency; }
+			get => _currency;
 			set
 			{
 				_currency = value;
@@ -222,7 +226,7 @@ namespace StockSharp.BusinessEntities
 			}
 		}
 
-		private SecurityExternalId _externalId;
+		private SecurityExternalId _externalId = new SecurityExternalId();
 
 		/// <summary>
 		/// Security ID in other systems.
@@ -238,15 +242,18 @@ namespace StockSharp.BusinessEntities
 		[InnerSchema(NullWhenAllEmpty = false)]
 		public SecurityExternalId ExternalId
 		{
-			get { return _externalId; }
+			get => _externalId;
 			set
 			{
+				if (value == null)
+					throw new ArgumentNullException(nameof(value));
+
 				_externalId = value;
 				Notify(nameof(ExternalId));
 			}
 		}
 
-		private string _class = string.Empty;
+		private string _class;
 
 		/// <summary>
 		/// Security class.
@@ -260,7 +267,7 @@ namespace StockSharp.BusinessEntities
 			Order = 8)]
 		public string Class
 		{
-			get { return _class; }
+			get => _class;
 			set
 			{
 				if (_class == value)
@@ -284,16 +291,17 @@ namespace StockSharp.BusinessEntities
 			GroupName = LocalizedStrings.GeneralKey,
 			Order = 9)]
 		[Nullable]
+		[GreaterThanZero]
 		public decimal? PriceStep
 		{
-			get { return _priceStep; }
+			get => _priceStep;
 			set
 			{
 				if (_priceStep == value)
 					return;
 
 				if (value < 0)
-					throw new ArgumentOutOfRangeException(nameof(value));
+					throw new ArgumentOutOfRangeException(nameof(value), value, LocalizedStrings.Str1219);
 
 				_priceStep = value;
 				Notify(nameof(PriceStep));
@@ -313,19 +321,80 @@ namespace StockSharp.BusinessEntities
 			GroupName = LocalizedStrings.GeneralKey,
 			Order = 10)]
 		[Nullable]
+		[GreaterThanZero]
 		public decimal? VolumeStep
 		{
-			get { return _volumeStep; }
+			get => _volumeStep;
 			set
 			{
 				if (_volumeStep == value)
 					return;
 
 				if (value < 0)
-					throw new ArgumentOutOfRangeException(nameof(value));
+					throw new ArgumentOutOfRangeException(nameof(value), value, LocalizedStrings.Str1219);
 
 				_volumeStep = value;
 				Notify(nameof(VolumeStep));
+			}
+		}
+
+		private decimal? _minVolume;
+
+		/// <summary>
+		/// Minimum volume allowed in order.
+		/// </summary>
+		[DataMember]
+		[Display(
+			ResourceType = typeof(LocalizedStrings),
+			Name = LocalizedStrings.MinVolumeKey,
+			Description = LocalizedStrings.MinVolumeDescKey,
+			GroupName = LocalizedStrings.GeneralKey,
+			Order = 10)]
+		[Nullable]
+		//[GreaterThanZero]
+		public decimal? MinVolume
+		{
+			get => _minVolume;
+			set
+			{
+				if (_minVolume == value)
+					return;
+
+				if (value < 0)
+					throw new ArgumentOutOfRangeException(nameof(value), value, LocalizedStrings.Str1219);
+
+				_minVolume = value;
+				Notify(nameof(MinVolume));
+			}
+		}
+
+		private decimal? _maxVolume;
+
+		/// <summary>
+		/// Maximum volume allowed in order.
+		/// </summary>
+		[DataMember]
+		[Display(
+			ResourceType = typeof(LocalizedStrings),
+			Name = LocalizedStrings.MaxVolumeKey,
+			Description = LocalizedStrings.MaxVolumeDescKey,
+			GroupName = LocalizedStrings.GeneralKey,
+			Order = 11)]
+		[Nullable]
+		//[GreaterThanZero]
+		public decimal? MaxVolume
+		{
+			get => _maxVolume;
+			set
+			{
+				if (_maxVolume == value)
+					return;
+
+				if (value < 0)
+					throw new ArgumentOutOfRangeException(nameof(value), value, LocalizedStrings.Str1219);
+
+				_maxVolume = value;
+				Notify(nameof(MaxVolume));
 			}
 		}
 
@@ -340,18 +409,18 @@ namespace StockSharp.BusinessEntities
 			Name = LocalizedStrings.Str330Key,
 			Description = LocalizedStrings.LotVolumeKey,
 			GroupName = LocalizedStrings.GeneralKey,
-			Order = 11)]
+			Order = 12)]
 		[Nullable]
 		public decimal? Multiplier
 		{
-			get { return _multiplier; }
+			get => _multiplier;
 			set
 			{
 				if (_multiplier == value)
 					return;
 
 				if (value < 0)
-					throw new ArgumentOutOfRangeException(nameof(value));
+					throw new ArgumentOutOfRangeException(nameof(value), value, LocalizedStrings.Str1219);
 
 				_multiplier = value;
 				Notify(nameof(Multiplier));
@@ -369,19 +438,19 @@ namespace StockSharp.BusinessEntities
 			Name = LocalizedStrings.DecimalsKey,
 			Description = LocalizedStrings.Str548Key,
 			GroupName = LocalizedStrings.GeneralKey,
-			Order = 12)]
+			Order = 13)]
 		//[ReadOnly(true)]
 		[Nullable]
 		public int? Decimals
 		{
-			get { return _decimals; }
+			get => _decimals;
 			set
 			{
 				if (_decimals == value)
 					return;
 
 				if (value < 0)
-					throw new ArgumentOutOfRangeException(nameof(value));
+					throw new ArgumentOutOfRangeException(nameof(value), value, LocalizedStrings.Str1219);
 
 				_decimals = value;
 				Notify(nameof(Decimals));
@@ -400,10 +469,10 @@ namespace StockSharp.BusinessEntities
 			Name = LocalizedStrings.ExpiryDateKey,
 			Description = LocalizedStrings.Str371Key,
 			GroupName = LocalizedStrings.GeneralKey,
-			Order = 13)]
+			Order = 14)]
 		public DateTimeOffset? ExpiryDate
 		{
-			get { return _expiryDate; }
+			get => _expiryDate;
 			set
 			{
 				if (_expiryDate == value)
@@ -426,10 +495,10 @@ namespace StockSharp.BusinessEntities
 			Name = LocalizedStrings.SettlementDateKey,
 			Description = LocalizedStrings.Str373Key,
 			GroupName = LocalizedStrings.GeneralKey,
-			Order = 14)]
+			Order = 15)]
 		public DateTimeOffset? SettlementDate
 		{
-			get { return _settlementDate; }
+			get => _settlementDate;
 			set
 			{
 				if (_settlementDate == value)
@@ -440,15 +509,85 @@ namespace StockSharp.BusinessEntities
 			}
 		}
 
-		[field: NonSerialized]
-		private SynchronizedDictionary<object, object> _extensionInfo;
+		private string _cfiCode;
 
 		/// <summary>
-		/// Extended security info.
+		/// Type in ISO 10962 standard.
 		/// </summary>
-		/// <remarks>
-		/// Required if additional information associated with the instrument is stored in the program. For example, the date of instrument expiration (if it is option) or information about the underlying asset if it is the futures contract.
-		/// </remarks>
+		[DataMember]
+		[Display(
+			ResourceType = typeof(LocalizedStrings),
+			Name = LocalizedStrings.CfiCodeKey,
+			Description = LocalizedStrings.CfiCodeDescKey,
+			GroupName = LocalizedStrings.GeneralKey,
+			Order = 16)]
+		public string CfiCode
+		{
+			get => _cfiCode;
+			set
+			{
+				if (_cfiCode == value)
+					return;
+
+				_cfiCode = value;
+				Notify(nameof(CfiCode));
+			}
+		}
+
+		private decimal? _faceValue;
+
+		/// <summary>
+		/// Face value.
+		/// </summary>
+		[DataMember]
+		[Display(
+			ResourceType = typeof(LocalizedStrings),
+			Name = LocalizedStrings.FaceValueKey,
+			Description = LocalizedStrings.FaceValueDescKey,
+			GroupName = LocalizedStrings.GeneralKey,
+			Order = 17)]
+		public decimal? FaceValue
+		{
+			get => _faceValue;
+			set
+			{
+				if (_faceValue == value)
+					return;
+
+				_faceValue = value;
+				Notify(nameof(FaceValue));
+			}
+		}
+
+		private string _primaryId;
+
+		/// <summary>
+		/// Identifier on primary exchange.
+		/// </summary>
+		[DataMember]
+		[Display(
+			ResourceType = typeof(LocalizedStrings),
+			Name = LocalizedStrings.PrimaryIdKey,
+			Description = LocalizedStrings.PrimaryIdDescKey,
+			GroupName = LocalizedStrings.GeneralKey,
+			Order = 18)]
+		public string PrimaryId
+		{
+			get => _primaryId;
+			set
+			{
+				if (_primaryId == value)
+					return;
+
+				_primaryId = value;
+				Notify(nameof(PrimaryId));
+			}
+		}
+
+		[field: NonSerialized]
+		private SynchronizedDictionary<string, object> _extensionInfo;
+
+		/// <inheritdoc />
 		[XmlIgnore]
 		//[DataMember]
 		[Display(
@@ -457,9 +596,10 @@ namespace StockSharp.BusinessEntities
 			Description = LocalizedStrings.Str427Key,
 			GroupName = LocalizedStrings.GeneralKey,
 			Order = 20)]
-		public IDictionary<object, object> ExtensionInfo
+		[Ignore]
+		public IDictionary<string, object> ExtensionInfo
 		{
-			get { return _extensionInfo; }
+			get => _extensionInfo;
 			set
 			{
 				_extensionInfo = value.Sync();
@@ -485,7 +625,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? StepPrice
 		{
-			get { return _stepPrice; }
+			get => _stepPrice;
 			set
 			{
 				if (value < 0)
@@ -518,7 +658,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public Trade LastTrade
 		{
-			get { return _lastTrade; }
+			get => _lastTrade;
 			set
 			{
 				if (_lastTrade == value)
@@ -553,7 +693,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? OpenPrice
 		{
-			get { return _openPrice; }
+			get => _openPrice;
 			set
 			{
 				if (_openPrice == value)
@@ -582,7 +722,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? ClosePrice
 		{
-			get { return _closePrice; }
+			get => _closePrice;
 			set
 			{
 				if (_closePrice == value)
@@ -611,7 +751,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? LowPrice
 		{
-			get { return _lowPrice; }
+			get => _lowPrice;
 			set
 			{
 				if (_lowPrice == value)
@@ -640,7 +780,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? HighPrice
 		{
-			get { return _highPrice; }
+			get => _highPrice;
 			set
 			{
 				if (_highPrice == value)
@@ -651,7 +791,7 @@ namespace StockSharp.BusinessEntities
 			}
 		}
 
-		private Quote _bestBid;
+		private QuoteChange? _bestBid;
 
 		//[DataMember]
 		/// <summary>
@@ -667,9 +807,9 @@ namespace StockSharp.BusinessEntities
 			Order = 206)]
 		[Browsable(false)]
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
-		public Quote BestBid
+		public QuoteChange? BestBid
 		{
-			get { return _bestBid; }
+			get => _bestBid;
 			set
 			{
 				//TODO: решить другим методом, OnEquals не тормозит, медленно работает GUI
@@ -683,7 +823,7 @@ namespace StockSharp.BusinessEntities
 			}
 		}
 
-		private Quote _bestAsk;
+		private QuoteChange? _bestAsk;
 
 		//[DataMember]
 		/// <summary>
@@ -699,9 +839,9 @@ namespace StockSharp.BusinessEntities
 			Order = 207)]
 		[Browsable(false)]
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
-		public Quote BestAsk
+		public QuoteChange? BestAsk
 		{
-			get { return _bestAsk; }
+			get => _bestAsk;
 			set
 			{
 				// if (_bestAsk == value)
@@ -748,7 +888,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public SecurityStates? State
 		{
-			get { return _state; }
+			get => _state;
 			set
 			{
 				if (_state == value)
@@ -777,7 +917,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? MinPrice
 		{
-			get { return _minPrice; }
+			get => _minPrice;
 			set
 			{
 				if (_minPrice == value)
@@ -806,7 +946,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? MaxPrice
 		{
-			get { return _maxPrice; }
+			get => _maxPrice;
 			set
 			{
 				if (_maxPrice == value)
@@ -835,7 +975,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? MarginBuy
 		{
-			get { return _marginBuy; }
+			get => _marginBuy;
 			set
 			{
 				if (_marginBuy == value)
@@ -864,7 +1004,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? MarginSell
 		{
-			get { return _marginSell; }
+			get => _marginSell;
 			set
 			{
 				if (_marginSell == value)
@@ -898,7 +1038,7 @@ namespace StockSharp.BusinessEntities
 		//	}
 		//}
 
-		private string _underlyingSecurityId = string.Empty;
+		private string _underlyingSecurityId;
 
 		/// <summary>
 		/// Underlying asset on which the current security is built.
@@ -912,7 +1052,7 @@ namespace StockSharp.BusinessEntities
 			Order = 100)]
 		public string UnderlyingSecurityId
 		{
-			get { return _underlyingSecurityId; }
+			get => _underlyingSecurityId;
 			set
 			{
 				if (_underlyingSecurityId == value)
@@ -938,7 +1078,7 @@ namespace StockSharp.BusinessEntities
 			Order = 101)]
 		public OptionTypes? OptionType
 		{
-			get { return _optionType; }
+			get => _optionType;
 			set
 			{
 				if (_optionType == value)
@@ -964,14 +1104,14 @@ namespace StockSharp.BusinessEntities
 		[Nullable]
 		public decimal? Strike
 		{
-			get { return _strike; }
+			get => _strike;
 			set
 			{
 				if (_strike == value)
 					return;
 
 				if (value < 0)
-					throw new ArgumentOutOfRangeException(nameof(value));
+					throw new ArgumentOutOfRangeException(nameof(value), value, LocalizedStrings.Str1219);
 
 				_strike = value;
 				Notify(nameof(Strike));
@@ -992,7 +1132,7 @@ namespace StockSharp.BusinessEntities
 			Order = 103)]
 		public string BinaryOptionType
 		{
-			get { return _binaryOptionType; }
+			get => _binaryOptionType;
 			set
 			{
 				if (_binaryOptionType == value)
@@ -1021,7 +1161,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? ImpliedVolatility
 		{
-			get { return _impliedVolatility; }
+			get => _impliedVolatility;
 			set
 			{
 				if (_impliedVolatility == value)
@@ -1036,7 +1176,7 @@ namespace StockSharp.BusinessEntities
 
 		//[DataMember]
 		/// <summary>
-		/// Volatility (historic).
+		/// Volatility (historical).
 		/// </summary>
 		[Ignore]
 		[XmlIgnore]
@@ -1050,7 +1190,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? HistoricalVolatility
 		{
-			get { return _historicalVolatility; }
+			get => _historicalVolatility;
 			set
 			{
 				if (_historicalVolatility == value)
@@ -1079,7 +1219,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? TheorPrice
 		{
-			get { return _theorPrice; }
+			get => _theorPrice;
 			set
 			{
 				if (_theorPrice == value)
@@ -1108,7 +1248,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? Delta
 		{
-			get { return _delta; }
+			get => _delta;
 			set
 			{
 				if (_delta == value)
@@ -1137,7 +1277,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? Gamma
 		{
-			get { return _gamma; }
+			get => _gamma;
 			set
 			{
 				if (_gamma == value)
@@ -1166,7 +1306,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? Vega
 		{
-			get { return _vega; }
+			get => _vega;
 			set
 			{
 				if (_vega == value)
@@ -1195,7 +1335,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? Theta
 		{
-			get { return _theta; }
+			get => _theta;
 			set
 			{
 				if (_theta == value)
@@ -1224,7 +1364,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? Rho
 		{
-			get { return _rho; }
+			get => _rho;
 			set
 			{
 				if (_rho == value)
@@ -1253,7 +1393,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? OpenInterest
 		{
-			get { return _openInterest; }
+			get => _openInterest;
 			set
 			{
 				if (_openInterest == value)
@@ -1274,7 +1414,7 @@ namespace StockSharp.BusinessEntities
 		[XmlIgnore]
 		public DateTimeOffset LocalTime
 		{
-			get { return _localTime; }
+			get => _localTime;
 			set
 			{
 				_localTime = value;
@@ -1294,7 +1434,7 @@ namespace StockSharp.BusinessEntities
 		[XmlIgnore]
 		public DateTimeOffset LastChangeTime
 		{
-			get { return _lastChangeTime; }
+			get => _lastChangeTime;
 			set
 			{
 				_lastChangeTime = value;
@@ -1320,7 +1460,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? BidsVolume
 		{
-			get { return _bidsVolume; }
+			get => _bidsVolume;
 			set
 			{
 				_bidsVolume = value;
@@ -1346,7 +1486,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public int? BidsCount
 		{
-			get { return _bidsCount; }
+			get => _bidsCount;
 			set
 			{
 				_bidsCount = value;
@@ -1372,7 +1512,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? AsksVolume
 		{
-			get { return _asksVolume; }
+			get => _asksVolume;
 			set
 			{
 				_asksVolume = value;
@@ -1398,7 +1538,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public int? AsksCount
 		{
-			get { return _asksCount; }
+			get => _asksCount;
 			set
 			{
 				_asksCount = value;
@@ -1424,7 +1564,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public int? TradesCount
 		{
-			get { return _tradesCount; }
+			get => _tradesCount;
 			set
 			{
 				_tradesCount = value;
@@ -1450,7 +1590,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? HighBidPrice
 		{
-			get { return _highBidPrice; }
+			get => _highBidPrice;
 			set
 			{
 				_highBidPrice = value;
@@ -1462,7 +1602,7 @@ namespace StockSharp.BusinessEntities
 
 		//[DataMember]
 		/// <summary>
-		/// Maximum ask during the session.
+		/// Minimum ask during the session.
 		/// </summary>
 		[Ignore]
 		[XmlIgnore]
@@ -1476,7 +1616,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? LowAskPrice
 		{
-			get { return _lowAskPrice; }
+			get => _lowAskPrice;
 			set
 			{
 				_lowAskPrice = value;
@@ -1502,7 +1642,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? Yield
 		{
-			get { return _yield; }
+			get => _yield;
 			set
 			{
 				_yield = value;
@@ -1528,7 +1668,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? VWAP
 		{
-			get { return _vwap; }
+			get => _vwap;
 			set
 			{
 				_vwap = value;
@@ -1554,7 +1694,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? SettlementPrice
 		{
-			get { return _settlementPrice; }
+			get => _settlementPrice;
 			set
 			{
 				_settlementPrice = value;
@@ -1580,7 +1720,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? AveragePrice
 		{
-			get { return _averagePrice; }
+			get => _averagePrice;
 			set
 			{
 				_averagePrice = value;
@@ -1606,7 +1746,7 @@ namespace StockSharp.BusinessEntities
 		//[Obsolete("Use the IConnector.GetSecurityValue.")]
 		public decimal? Volume
 		{
-			get { return _volume; }
+			get => _volume;
 			set
 			{
 				_volume = value;
@@ -1614,23 +1754,253 @@ namespace StockSharp.BusinessEntities
 			}
 		}
 
-		[field: NonSerialized]
-		private PropertyChangedEventHandler _propertyChanged;
+		private decimal? _turnover;
 
-	    event PropertyChangedEventHandler INotifyPropertyChanged.PropertyChanged
+		/// <summary>
+		/// Turnover.
+		/// </summary>
+		[Display(
+			ResourceType = typeof(LocalizedStrings),
+			Name = LocalizedStrings.TurnoverKey,
+			Description = LocalizedStrings.TurnoverKey + LocalizedStrings.Dot,
+			GroupName = LocalizedStrings.Str436Key,
+			Order = 232)]
+		[Ignore]
+		[XmlIgnore]
+		[Browsable(false)]
+		//[Obsolete("Use the IConnector.GetSecurityValue.")]
+		public decimal? Turnover
 		{
-			add { _propertyChanged += value; }
-			remove { _propertyChanged -= value; }
+			get => _turnover;
+			set
+			{
+				_turnover = value;
+				Notify(nameof(Turnover));
+			}
+		}
+
+		private decimal? _issueSize;
+
+		/// <summary>
+		/// Number of issued contracts.
+		/// </summary>
+		[Display(
+			ResourceType = typeof(LocalizedStrings),
+			Name = LocalizedStrings.IssueSizeKey,
+			Description = LocalizedStrings.IssueSizeKey + LocalizedStrings.Dot,
+			GroupName = LocalizedStrings.GeneralKey,
+			Order = 21)]
+		[DataMember]
+		[Nullable]
+		public decimal? IssueSize
+		{
+			get => _issueSize;
+			set
+			{
+				_issueSize = value;
+				Notify(nameof(IssueSize));
+			}
+		}
+
+		private DateTimeOffset? _issueDate;
+		
+		/// <summary>
+		/// Date of issue.
+		/// </summary>
+		[Display(
+			ResourceType = typeof(LocalizedStrings),
+			Name = LocalizedStrings.IssueDateKey,
+			Description = LocalizedStrings.IssueDateKey + LocalizedStrings.Dot,
+			GroupName = LocalizedStrings.GeneralKey,
+			Order = 22)]
+		[DataMember]
+		[Nullable]
+		public DateTimeOffset? IssueDate
+		{
+			get => _issueDate;
+			set
+			{
+				_issueDate = value;
+				Notify(nameof(IssueDate));
+			}
+		}
+
+		private bool? _shortable;
+		
+		/// <summary>
+		/// Can have short positions.
+		/// </summary>
+		[Display(
+			ResourceType = typeof(LocalizedStrings),
+			Name = LocalizedStrings.ShortableKey,
+			Description = LocalizedStrings.ShortableDescKey,
+			GroupName = LocalizedStrings.GeneralKey,
+			Order = 22)]
+		[DataMember]
+		[Nullable]
+		public bool? Shortable
+		{
+			get => _shortable;
+			set
+			{
+				_shortable = value;
+				Notify(nameof(Shortable));
+			}
+		}
+
+		private SecurityTypes? _underlyingSecurityType;
+
+		/// <summary>
+		/// Underlying security type.
+		/// </summary>
+		[Display(
+			ResourceType = typeof(LocalizedStrings),
+			Name = LocalizedStrings.AssetTypeKey,
+			Description = LocalizedStrings.UnderlyingSecurityTypeKey + LocalizedStrings.Dot,
+			GroupName = LocalizedStrings.Str437Key,
+			Order = 103)]
+		[DataMember]
+		[Nullable]
+		public SecurityTypes? UnderlyingSecurityType
+		{
+			get => _underlyingSecurityType;
+			set
+			{
+				_underlyingSecurityType = value;
+				Notify(nameof(UnderlyingSecurityType));
+			}
+		}
+
+		private decimal? _underlyingSecurityMinVolume;
+
+		/// <summary>
+		/// Minimum volume allowed in order for underlying security.
+		/// </summary>
+		[Display(
+			ResourceType = typeof(LocalizedStrings),
+			Name = LocalizedStrings.UnderlyingMinVolumeKey,
+			Description = LocalizedStrings.UnderlyingMinVolumeDescKey,
+			GroupName = LocalizedStrings.Str437Key,
+			Order = 104)]
+		[DataMember]
+		[Nullable]
+		public decimal? UnderlyingSecurityMinVolume
+		{
+			get => _underlyingSecurityMinVolume;
+			set
+			{
+				_underlyingSecurityMinVolume = value;
+				Notify(nameof(UnderlyingSecurityMinVolume));
+			}
+		}
+
+		private decimal? _buyBackPrice;
+
+		/// <summary>
+		/// BuyBack price.
+		/// </summary>
+		[Ignore]
+		[XmlIgnore]
+		[Browsable(false)]
+		public decimal? BuyBackPrice
+		{
+			get => _buyBackPrice;
+			set
+			{
+				_buyBackPrice = value;
+				Notify(nameof(BuyBackPrice));
+			}
+		}
+
+		private DateTimeOffset? _buyBackDate;
+		
+		/// <summary>
+		/// BuyBack date.
+		/// </summary>
+		[Ignore]
+		[XmlIgnore]
+		[Browsable(false)]
+		public DateTimeOffset? BuyBackDate
+		{
+			get => _buyBackDate;
+			set
+			{
+				_buyBackDate = value;
+				Notify(nameof(BuyBackDate));
+			}
 		}
 
 		/// <summary>
-		/// Returns a string that represents the current object.
+		/// Basket security type. Can be <see langword="null"/> in case of regular security.
 		/// </summary>
-		/// <returns>A string that represents the current object.</returns>
-		public override string ToString()
+		[DataMember]
+		[Display(
+			ResourceType = typeof(LocalizedStrings),
+			Name = LocalizedStrings.CodeKey,
+			Description = LocalizedStrings.BasketCodeKey,
+			GroupName = LocalizedStrings.BasketKey,
+			Order = 200)]
+		public virtual string BasketCode { get; set; }
+
+		/// <summary>
+		/// Basket security expression. Can be <see langword="null"/> in case of regular security.
+		/// </summary>
+		[DataMember]
+		[Display(
+			ResourceType = typeof(LocalizedStrings),
+			Name = LocalizedStrings.ExpressionKey,
+			Description = LocalizedStrings.ExpressionDescKey,
+			GroupName = LocalizedStrings.BasketKey,
+			Order = 201)]
+		public virtual string BasketExpression { get; set; }
+
+		private decimal? _commissionTaker;
+
+		/// <summary>
+		/// Commission (taker).
+		/// </summary>
+		[Ignore]
+		[XmlIgnore]
+		[Browsable(false)]
+		public decimal? CommissionTaker
 		{
-			return Id;
+			get => _commissionTaker;
+			set
+			{
+				_commissionTaker = value;
+				Notify(nameof(CommissionTaker));
+			}
 		}
+
+		private decimal? _commissionMaker;
+
+		/// <summary>
+		/// Commission (maker).
+		/// </summary>
+		[Ignore]
+		[XmlIgnore]
+		[Browsable(false)]
+		public decimal? CommissionMaker
+		{
+			get => _commissionMaker;
+			set
+			{
+				_commissionMaker = value;
+				Notify(nameof(CommissionMaker));
+			}
+		}
+
+		[field: NonSerialized]
+		private PropertyChangedEventHandler _propertyChanged;
+
+		event PropertyChangedEventHandler INotifyPropertyChanged.PropertyChanged
+		{
+			add => _propertyChanged += value;
+			remove => _propertyChanged -= value;
+		}
+
+		/// <inheritdoc />
+		public override string ToString() => Id;
 
 		/// <summary>
 		/// Create a copy of <see cref="Security"/>.
@@ -1659,6 +2029,8 @@ namespace StockSharp.BusinessEntities
 			destination.Class = Class;
 			destination.ShortName = ShortName;
 			destination.VolumeStep = VolumeStep;
+			destination.MinVolume = MinVolume;
+			destination.MaxVolume = MaxVolume;
 			destination.Multiplier = Multiplier;
 			destination.PriceStep = PriceStep;
 			destination.Decimals = Decimals;
@@ -1689,6 +2061,21 @@ namespace StockSharp.BusinessEntities
 			destination.BidsVolume = BidsVolume;
 			destination.AsksCount = AsksCount;
 			destination.AsksVolume = AsksVolume;
+			destination.CfiCode = CfiCode;
+			destination.Turnover = Turnover;
+			destination.IssueSize = IssueSize;
+			destination.IssueDate = IssueDate;
+			destination.UnderlyingSecurityType = UnderlyingSecurityType;
+			destination.UnderlyingSecurityMinVolume = UnderlyingSecurityMinVolume;
+			destination.BuyBackDate = BuyBackDate;
+			destination.BuyBackPrice = BuyBackPrice;
+			destination.Shortable = Shortable;
+			destination.BasketCode = BasketCode;
+			destination.BasketExpression = BasketExpression;
+			destination.CommissionTaker = CommissionTaker;
+			destination.CommissionMaker = CommissionMaker;
+			destination.FaceValue = FaceValue;
+			destination.PrimaryId = PrimaryId;
 
 			//if (destination.ExtensionInfo == null)
 			//	destination.ExtensionInfo = new SynchronizedDictionary<object, object>();

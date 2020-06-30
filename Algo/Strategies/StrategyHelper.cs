@@ -22,13 +22,13 @@ namespace StockSharp.Algo.Strategies
 
 	using Ecng.Collections;
 	using Ecng.Common;
-	using Ecng.Configuration;
 	using Ecng.Serialization;
 
 	using MoreLinq;
 
 	using StockSharp.Algo.Candles;
 	using StockSharp.Algo.Storages;
+	using StockSharp.Algo.Strategies.Messages;
 	using StockSharp.Algo.Testing;
 	using StockSharp.BusinessEntities;
 	using StockSharp.Messages;
@@ -40,6 +40,11 @@ namespace StockSharp.Algo.Strategies
 	/// </summary>
 	public static class StrategyHelper
 	{
+		/// <summary>
+		/// Allow trading key.
+		/// </summary>
+		public const string AllowTradingKey = "AllowTrading";
+
 		/// <summary>
 		/// To create initialized object of buy order at market price.
 		/// </summary>
@@ -129,14 +134,14 @@ namespace StockSharp.Algo.Strategies
 
 			if (price == null)
 			{
-				if (security.Board.IsSupportMarketOrders)
-					order.Type = OrderTypes.Market;
-				else
-					order.Price = strategy.GetMarketPrice(direction) ?? 0;
+				//if (security.Board.IsSupportMarketOrders)
+				order.Type = OrderTypes.Market;
+				//else
+				//	order.Price = strategy.GetMarketPrice(direction) ?? 0;
 			}
 			else
 				order.Price = price.Value;
-			
+
 			return order;
 		}
 
@@ -170,17 +175,20 @@ namespace StockSharp.Algo.Strategies
 			}
 		}
 
+		private const string _candleManagerKey = "CandleManager";
+
 		/// <summary>
 		/// To get the candle manager, associated with the passed strategy.
 		/// </summary>
 		/// <param name="strategy">Strategy.</param>
 		/// <returns>The candles manager.</returns>
+		[Obsolete("Use Strategy direct.")]
 		public static ICandleManager GetCandleManager(this Strategy strategy)
 		{
 			if (strategy == null)
 				throw new ArgumentNullException(nameof(strategy));
 
-			return strategy.Environment.GetValue<ICandleManager>("CandleManager");
+			return strategy.Environment.GetValue<ICandleManager>(_candleManagerKey);
 		}
 
 		/// <summary>
@@ -188,6 +196,7 @@ namespace StockSharp.Algo.Strategies
 		/// </summary>
 		/// <param name="strategy">Strategy.</param>
 		/// <param name="candleManager">The candles manager.</param>
+		[Obsolete("Use Strategy direct.")]
 		public static void SetCandleManager(this Strategy strategy, ICandleManager candleManager)
 		{
 			if (strategy == null)
@@ -196,8 +205,10 @@ namespace StockSharp.Algo.Strategies
 			if (candleManager == null)
 				throw new ArgumentNullException(nameof(candleManager));
 
-			strategy.Environment.SetValue("CandleManager", candleManager);
+			strategy.Environment.SetValue(_candleManagerKey, candleManager);
 		}
+
+		private const string _isEmulationModeKey = "IsEmulationMode";
 
 		/// <summary>
 		/// To get the strategy start-up mode (paper trading or real).
@@ -206,7 +217,7 @@ namespace StockSharp.Algo.Strategies
 		/// <returns>If the paper trading mode is used - <see langword="true" />, otherwise - <see langword="false" />.</returns>
 		public static bool GetIsEmulation(this Strategy strategy)
 		{
-			return strategy.Environment.GetValue("IsEmulationMode", false);
+			return strategy.Environment.GetValue(_isEmulationModeKey, false);
 		}
 
 		/// <summary>
@@ -216,7 +227,7 @@ namespace StockSharp.Algo.Strategies
 		/// <param name="isEmulation">If the paper trading mode is used - <see langword="true" />, otherwise - <see langword="false" />.</param>
 		public static void SetIsEmulation(this Strategy strategy, bool isEmulation)
 		{
-			strategy.Environment.SetValue("IsEmulationMode", isEmulation);
+			strategy.Environment.SetValue(_isEmulationModeKey, isEmulation);
 		}
 
 		/// <summary>
@@ -224,9 +235,9 @@ namespace StockSharp.Algo.Strategies
 		/// </summary>
 		/// <param name="strategy">Strategy.</param>
 		/// <returns>If initialization is performed - <see langword="true" />, otherwise - <see langword="false" />.</returns>
-		public static bool GetIsInitialization(this Strategy strategy)
+		public static bool GetAllowTrading(this Strategy strategy)
 		{
-			return strategy.Environment.GetValue("IsInitializationMode", false);
+			return strategy.Environment.GetValue(AllowTradingKey, false);
 		}
 
 		/// <summary>
@@ -234,9 +245,10 @@ namespace StockSharp.Algo.Strategies
 		/// </summary>
 		/// <param name="strategy">Strategy.</param>
 		/// <param name="isInitialization">If initialization is performed - <see langword="true" />, otherwise - <see langword="false" />.</param>
-		public static void SetIsInitialization(this Strategy strategy, bool isInitialization)
+		public static void SetAllowTrading(this Strategy strategy, bool isInitialization)
 		{
-			strategy.Environment.SetValue("IsInitializationMode", isInitialization);
+			strategy.Environment.SetValue(AllowTradingKey, isInitialization);
+			strategy.RaiseParametersChanged(AllowTradingKey);
 		}
 
 		/// <summary>
@@ -245,7 +257,13 @@ namespace StockSharp.Algo.Strategies
 		/// <param name="strategy">Strategy.</param>
 		/// <param name="storage">Market data storage.</param>
 		/// <remarks>
-		/// This method is used to load statistics, orders and trades. The data storage shall include the following parameters: 1. Settings (SettingsStorage) � statistics settings. 2. Statistics(SettingsStorage) � saved state of statistics. 3. Orders (IDictionary[Order, IEnumerable[MyTrade]]) � orders and corresponding trades. 4. Positions (IEnumerable[Position]) � strategy positions. If any of the parameters is missing, data will not be restored.
+		/// This method is used to load statistics, orders and trades.
+		/// The data storage shall include the following parameters:
+		/// 1. Settings (SettingsStorage) - statistics settings.
+		/// 2. Statistics(SettingsStorage) - saved state of statistics.
+		/// 3. Orders (IDictionary[Order, IEnumerable[MyTrade]]) - orders and corresponding trades.
+		/// 4. Positions (IEnumerable[Position]) - strategy positions.
+		/// If any of the parameters is missing, data will not be restored.
 		/// </remarks>
 		public static void LoadState(this Strategy strategy, SettingsStorage storage)
 		{
@@ -258,13 +276,13 @@ namespace StockSharp.Algo.Strategies
 			var settings = storage.GetValue<SettingsStorage>("Settings");
 			if (settings != null && settings.Count != 0)
 			{
-				var connector = strategy.Connector ?? ConfigManager.TryGetService<IConnector>();
+				var connector = strategy.Connector ?? ServicesRegistry.Connector;
 
 				if (connector != null && settings.Contains("security"))
 					strategy.Security = connector.LookupById(settings.GetValue<string>("security"));
 
 				if (connector != null && settings.Contains("portfolio"))
-					strategy.Portfolio = connector.Portfolios.FirstOrDefault(p => p.Name == settings.GetValue<string>("portfolio"));
+					strategy.Portfolio = connector.LookupByPortfolioName(settings.GetValue<string>("portfolio"));
 
 				var id = strategy.Id;
 
@@ -314,36 +332,26 @@ namespace StockSharp.Algo.Strategies
 			return strategy.GetSecurityValue<T>(strategy.Security, field);
 		}
 
-		/// <summary>
-		/// To get market price for the instrument by maximal and minimal possible prices.
-		/// </summary>
-		/// <param name="strategy">Strategy.</param>
-		/// <param name="side">Order side.</param>
-		/// <returns>The market price. If there is no information on maximal and minimal possible prices, then <see langword="null" /> will be returned.</returns>
-		public static decimal? GetMarketPrice(this Strategy strategy, Sides side)
-		{
-			if (strategy == null)
-				throw new ArgumentNullException(nameof(strategy));
+		///// <summary>
+		///// To get market price for the instrument by maximal and minimal possible prices.
+		///// </summary>
+		///// <param name="strategy">Strategy.</param>
+		///// <param name="side">Order side.</param>
+		///// <returns>The market price. If there is no information on maximal and minimal possible prices, then <see langword="null" /> will be returned.</returns>
+		//public static decimal? GetMarketPrice(this Strategy strategy, Sides side)
+		//{
+		//	if (strategy == null)
+		//		throw new ArgumentNullException(nameof(strategy));
 
-			return strategy.Security.GetMarketPrice(strategy.SafeGetConnector(), side);
-		}
-
-		/// <summary>
-		/// To get the tracing-based order identifier.
-		/// </summary>
-		/// <param name="order">Order.</param>
-		/// <returns>The tracing-based order identifier.</returns>
-		public static string GetTraceId(this Order order)
-		{
-			return "{0} (0x{1:X})".Put(order.TransactionId, order.GetHashCode());
-		}
+		//	return strategy.Security.GetMarketPrice(strategy.SafeGetConnector(), side);
+		//}
 
 		private sealed class EquityStrategy : Strategy
 		{
 			private readonly Dictionary<DateTimeOffset, Order[]> _orders;
-			private readonly Dictionary<Tuple<Security, Portfolio>, Strategy> _childStrategies = new Dictionary<Tuple<Security, Portfolio>, Strategy>();
+			private readonly Dictionary<Tuple<Security, Portfolio>, Strategy> _childStrategies;
 
-			public EquityStrategy(IEnumerable<Order> orders, IDictionary<Security, decimal> openedPositions)
+			public EquityStrategy(Order[] orders, IDictionary<Security, decimal> openedPositions)
 			{
 				_orders = orders.GroupBy(o => o.Time).ToDictionary(g => g.Key, g => g.ToArray());
 
@@ -396,24 +404,25 @@ namespace StockSharp.Algo.Strategies
 			if (array.IsEmpty())
 				throw new ArgumentOutOfRangeException(nameof(orders));
 
-			using (var connector = new RealTimeEmulationTrader<HistoryMessageAdapter>(new HistoryMessageAdapter(new IncrementalIdGenerator(), new CollectionSecurityProvider(array.Select(o => o.Security).Distinct()))
+			var secProvider = new CollectionSecurityProvider(array.Select(o => o.Security).Distinct());
+			using (var connector = new RealTimeEmulationTrader<HistoryMessageAdapter>(new HistoryMessageAdapter(new IncrementalIdGenerator(), secProvider)
 			{
 				StorageRegistry = storageRegistry
-			}))
+			}, secProvider))
 			{
 				var from = array.Min(o => o.Time);
 				var to = from.EndOfDay();
 
 				var strategy = new EquityStrategy(array, openedPositions) { Connector = connector };
 
-				var waitHandle = new SyncObject();
+				//var waitHandle = new SyncObject();
 
-				//connector.UnderlyngMarketDataAdapter.StateChanged += () =>
+				//connector.MarketDataAdapter.StateChanged += () =>
 				//{
-				//	if (connector.UnderlyngMarketDataAdapter.State == EmulationStates.Started)
+				//	if (connector.MarketDataAdapter.State == EmulationStates.Started)
 				//		strategy.Start();
 
-				//	if (connector.UnderlyngMarketDataAdapter.State == EmulationStates.Stopped)
+				//	if (connector.MarketDataAdapter.State == EmulationStates.Stopped)
 				//	{
 				//		strategy.Stop();
 
@@ -428,7 +437,7 @@ namespace StockSharp.Algo.Strategies
 
 				//lock (waitHandle)
 				//{
-				//	if (connector.UnderlyngMarketDataAdapter.State != EmulationStates.Stopped)
+				//	if (connector.MarketDataAdapter.State != EmulationStates.Stopped)
 				//		waitHandle.Wait();
 				//}
 
@@ -443,10 +452,7 @@ namespace StockSharp.Algo.Strategies
 			protected StrategyRule(Strategy strategy)
 				: base(strategy)
 			{
-				if (strategy == null)
-					throw new ArgumentNullException(nameof(strategy));
-
-				Strategy = strategy;
+				Strategy = strategy ?? throw new ArgumentNullException(nameof(strategy));
 			}
 
 			protected Strategy Strategy { get; }
@@ -459,16 +465,13 @@ namespace StockSharp.Algo.Strategies
 			public PnLManagerStrategyRule(Strategy strategy)
 				: this(strategy, v => true)
 			{
-				Name = LocalizedStrings.Str1249;
+				Name = LocalizedStrings.PnLChange;
 			}
 
 			public PnLManagerStrategyRule(Strategy strategy, Func<decimal, bool> changed)
 				: base(strategy)
 			{
-				if (changed == null)
-					throw new ArgumentNullException(nameof(changed));
-
-				_changed = changed;
+				_changed = changed ?? throw new ArgumentNullException(nameof(changed));
 
 				Strategy.PnLChanged += OnPnLChanged;
 			}
@@ -499,10 +502,7 @@ namespace StockSharp.Algo.Strategies
 			public PositionManagerStrategyRule(Strategy strategy, Func<decimal, bool> changed)
 				: base(strategy)
 			{
-				if (changed == null)
-					throw new ArgumentNullException(nameof(changed));
-
-				_changed = changed;
+				_changed = changed ?? throw new ArgumentNullException(nameof(changed));
 
 				Strategy.PositionChanged += OnPositionChanged;
 			}
@@ -520,23 +520,23 @@ namespace StockSharp.Algo.Strategies
 			}
 		}
 
-		private sealed class NewMyTradesStrategyRule : StrategyRule<IEnumerable<MyTrade>>
+		private sealed class NewMyTradeStrategyRule : StrategyRule<MyTrade>
 		{
-			public NewMyTradesStrategyRule(Strategy strategy)
+			public NewMyTradeStrategyRule(Strategy strategy)
 				: base(strategy)
 			{
 				Name = LocalizedStrings.Str1251 + " " + strategy;
-				Strategy.NewMyTrades += OnStrategyNewMyTrades;
+				Strategy.NewMyTrade += OnStrategyNewMyTrade;
 			}
 
-			private void OnStrategyNewMyTrades(IEnumerable<MyTrade> myTrades)
+			private void OnStrategyNewMyTrade(MyTrade trade)
 			{
-				Activate(myTrades);
+				Activate(trade);
 			}
 
 			protected override void DisposeManaged()
 			{
-				Strategy.NewMyTrades -= OnStrategyNewMyTrades;
+				Strategy.NewMyTrade -= OnStrategyNewMyTrade;
 				base.DisposeManaged();
 			}
 		}
@@ -548,13 +548,11 @@ namespace StockSharp.Algo.Strategies
 			{
 				Name = LocalizedStrings.Str1252 + " " + strategy;
 				Strategy.OrderRegistered += Activate;
-				Strategy.StopOrderRegistered += Activate;
 			}
 
 			protected override void DisposeManaged()
 			{
 				Strategy.OrderRegistered -= Activate;
-				Strategy.StopOrderRegistered -= Activate;
 				base.DisposeManaged();
 			}
 		}
@@ -566,13 +564,11 @@ namespace StockSharp.Algo.Strategies
 			{
 				Name = LocalizedStrings.Str1253 + " " + strategy;
 				Strategy.OrderChanged += Activate;
-				Strategy.StopOrderChanged += Activate;
 			}
 
 			protected override void DisposeManaged()
 			{
 				Strategy.OrderChanged -= Activate;
-				Strategy.StopOrderChanged -= Activate;
 				base.DisposeManaged();
 			}
 		}
@@ -584,10 +580,7 @@ namespace StockSharp.Algo.Strategies
 			public ProcessStateChangedStrategyRule(Strategy strategy, Func<ProcessStates, bool> condition)
 				: base(strategy)
 			{
-				if (condition == null)
-					throw new ArgumentNullException(nameof(condition));
-
-				_condition = condition;
+				_condition = condition ?? throw new ArgumentNullException(nameof(condition));
 
 				Strategy.ProcessStateChanged += OnProcessStateChanged;
 			}
@@ -612,10 +605,7 @@ namespace StockSharp.Algo.Strategies
 			public PropertyChangedStrategyRule(Strategy strategy, Func<Strategy, bool> condition)
 				: base(strategy)
 			{
-				if (condition == null)
-					throw new ArgumentNullException(nameof(condition));
-
-				_condition = condition;
+				_condition = condition ?? throw new ArgumentNullException(nameof(condition));
 
 				Strategy.PropertyChanged += OnPropertyChanged;
 			}
@@ -635,15 +625,22 @@ namespace StockSharp.Algo.Strategies
 
 		private sealed class ErrorStrategyRule : StrategyRule<Exception>
 		{
-			public ErrorStrategyRule(Strategy strategy)
+			private readonly bool _processChildStrategyErrors;
+
+			public ErrorStrategyRule(Strategy strategy, bool processChildStrategyErrors)
 				: base(strategy)
 			{
+				_processChildStrategyErrors = processChildStrategyErrors;
+
 				Name = strategy + LocalizedStrings.Str1254;
 				Strategy.Error += OnError;
 			}
 
-			private void OnError(Exception error)
+			private void OnError(Strategy strategy, Exception error)
 			{
+				if (!_processChildStrategyErrors && !Equals(Strategy, strategy))
+					return;
+
 				Activate(error);
 			}
 
@@ -655,19 +652,19 @@ namespace StockSharp.Algo.Strategies
 		}
 
 		/// <summary>
-		/// To create a rule for the event of occurrence new strategy trades.
+		/// To create a rule for the event of occurrence new strategy trade.
 		/// </summary>
-		/// <param name="strategy">The startegy, based on which trades occurrence will be traced.</param>
+		/// <param name="strategy">The strategy, based on which trade occurrence will be traced.</param>
 		/// <returns>Rule.</returns>
-		public static MarketRule<Strategy, IEnumerable<MyTrade>> WhenNewMyTrades(this Strategy strategy)
+		public static MarketRule<Strategy, MyTrade> WhenNewMyTrade(this Strategy strategy)
 		{
-			return new NewMyTradesStrategyRule(strategy);
+			return new NewMyTradeStrategyRule(strategy);
 		}
 
 		/// <summary>
 		/// To create a rule for event of occurrence of new strategy order.
 		/// </summary>
-		/// <param name="strategy">The startegy, based on which order occurrence will be traced.</param>
+		/// <param name="strategy">The strategy, based on which order occurrence will be traced.</param>
 		/// <returns>Rule.</returns>
 		public static MarketRule<Strategy, Order> WhenOrderRegistered(this Strategy strategy)
 		{
@@ -677,7 +674,7 @@ namespace StockSharp.Algo.Strategies
 		/// <summary>
 		/// To create a rule for event of change of any strategy order.
 		/// </summary>
-		/// <param name="strategy">The startegy, based on which orders change will be traced.</param>
+		/// <param name="strategy">The strategy, based on which orders change will be traced.</param>
 		/// <returns>Rule.</returns>
 		public static MarketRule<Strategy, Order> WhenOrderChanged(this Strategy strategy)
 		{
@@ -687,7 +684,7 @@ namespace StockSharp.Algo.Strategies
 		/// <summary>
 		/// To create a rule for the event of strategy position change.
 		/// </summary>
-		/// <param name="strategy">The startegy, based on which position change will be traced.</param>
+		/// <param name="strategy">The strategy, based on which position change will be traced.</param>
 		/// <returns>Rule.</returns>
 		public static MarketRule<Strategy, decimal> WhenPositionChanged(this Strategy strategy)
 		{
@@ -697,7 +694,7 @@ namespace StockSharp.Algo.Strategies
 		/// <summary>
 		/// To create a rule for event of position event reduction below the specified level.
 		/// </summary>
-		/// <param name="strategy">The startegy, based on which position change will be traced.</param>
+		/// <param name="strategy">The strategy, based on which position change will be traced.</param>
 		/// <param name="value">The level. If the <see cref="Unit.Type"/> type equals to <see cref="UnitTypes.Limit"/>, specified price is set. Otherwise, shift value is specified.</param>
 		/// <returns>Rule.</returns>
 		public static MarketRule<Strategy, decimal> WhenPositionLess(this Strategy strategy, Unit value)
@@ -719,7 +716,7 @@ namespace StockSharp.Algo.Strategies
 		/// <summary>
 		/// To create a rule for event of position event increase above the specified level.
 		/// </summary>
-		/// <param name="strategy">The startegy, based on which position change will be traced.</param>
+		/// <param name="strategy">The strategy, based on which position change will be traced.</param>
 		/// <param name="value">The level. If the <see cref="Unit.Type"/> type equals to <see cref="UnitTypes.Limit"/>, specified price is set. Otherwise, shift value is specified.</param>
 		/// <returns>Rule.</returns>
 		public static MarketRule<Strategy, decimal> WhenPositionMore(this Strategy strategy, Unit value)
@@ -741,7 +738,7 @@ namespace StockSharp.Algo.Strategies
 		/// <summary>
 		/// To create a rule for event of profit reduction below the specified level.
 		/// </summary>
-		/// <param name="strategy">The startegy, based on which the profit change will be traced.</param>
+		/// <param name="strategy">The strategy, based on which the profit change will be traced.</param>
 		/// <param name="value">The level. If the <see cref="Unit.Type"/> type equals to <see cref="UnitTypes.Limit"/>, specified price is set. Otherwise, shift value is specified.</param>
 		/// <returns>Rule.</returns>
 		public static MarketRule<Strategy, decimal> WhenPnLLess(this Strategy strategy, Unit value)
@@ -763,7 +760,7 @@ namespace StockSharp.Algo.Strategies
 		/// <summary>
 		/// To create a rule for event of profit increase above the specified level.
 		/// </summary>
-		/// <param name="strategy">The startegy, based on which the profit change will be traced.</param>
+		/// <param name="strategy">The strategy, based on which the profit change will be traced.</param>
 		/// <param name="value">The level. If the <see cref="Unit.Type"/> type equals to <see cref="UnitTypes.Limit"/>, specified price is set. Otherwise, shift value is specified.</param>
 		/// <returns>Rule.</returns>
 		public static MarketRule<Strategy, decimal> WhenPnLMore(this Strategy strategy, Unit value)
@@ -785,7 +782,7 @@ namespace StockSharp.Algo.Strategies
 		/// <summary>
 		/// To create a rule for event of profit change.
 		/// </summary>
-		/// <param name="strategy">The startegy, based on which the profit change will be traced.</param>
+		/// <param name="strategy">The strategy, based on which the profit change will be traced.</param>
 		/// <returns>Rule.</returns>
 		public static MarketRule<Strategy, decimal> WhenPnLChanged(this Strategy strategy)
 		{
@@ -795,7 +792,7 @@ namespace StockSharp.Algo.Strategies
 		/// <summary>
 		/// To create a rule for event of start of strategy operation.
 		/// </summary>
-		/// <param name="strategy">The startegy, based on which the start of strategy operation will be expected.</param>
+		/// <param name="strategy">The strategy, based on which the start of strategy operation will be expected.</param>
 		/// <returns>Rule.</returns>
 		public static MarketRule<Strategy, Strategy> WhenStarted(this Strategy strategy)
 		{
@@ -808,7 +805,7 @@ namespace StockSharp.Algo.Strategies
 		/// <summary>
 		/// To create a rule for event of beginning of the strategy operation stop.
 		/// </summary>
-		/// <param name="strategy">The startegy, based on which the beginning of stop will be determined.</param>
+		/// <param name="strategy">The strategy, based on which the beginning of stop will be determined.</param>
 		/// <returns>Rule.</returns>
 		public static MarketRule<Strategy, Strategy> WhenStopping(this Strategy strategy)
 		{
@@ -821,7 +818,7 @@ namespace StockSharp.Algo.Strategies
 		/// <summary>
 		/// To create a rule for event full stop of strategy operation.
 		/// </summary>
-		/// <param name="strategy">The startegy, based on which the full stop will be expected.</param>
+		/// <param name="strategy">The strategy, based on which the full stop will be expected.</param>
 		/// <returns>Rule.</returns>
 		public static MarketRule<Strategy, Strategy> WhenStopped(this Strategy strategy)
 		{
@@ -834,17 +831,18 @@ namespace StockSharp.Algo.Strategies
 		/// <summary>
 		/// To create a rule for event of strategy error (transition of state <see cref="Strategy.ErrorState"/> into <see cref="LogLevels.Error"/>).
 		/// </summary>
-		/// <param name="strategy">The startegy, based on which error will be expected.</param>
+		/// <param name="strategy">The strategy, based on which error will be expected.</param>
+		/// <param name="processChildStrategyErrors">Process the child strategies errors.</param>
 		/// <returns>Rule.</returns>
-		public static MarketRule<Strategy, Exception> WhenError(this Strategy strategy)
+		public static MarketRule<Strategy, Exception> WhenError(this Strategy strategy, bool processChildStrategyErrors = false)
 		{
-			return new ErrorStrategyRule(strategy);
+			return new ErrorStrategyRule(strategy, processChildStrategyErrors);
 		}
 
 		/// <summary>
 		/// To create a rule for event of strategy warning (transition of state <see cref="Strategy.ErrorState"/> into <see cref="LogLevels.Warning"/>).
 		/// </summary>
-		/// <param name="strategy">The startegy, based on which the warning will be expected.</param>
+		/// <param name="strategy">The strategy, based on which the warning will be expected.</param>
 		/// <returns>Rule.</returns>
 		public static MarketRule<Strategy, Strategy> WhenWarning(this Strategy strategy)
 		{
@@ -920,12 +918,29 @@ namespace StockSharp.Algo.Strategies
 			if (rule == null)
 				throw new ArgumentNullException(nameof(rule));
 
-			var strategy = rule.Container as Strategy;
-
-			if (strategy == null)
-				throw new ArgumentException(LocalizedStrings.Str1263Params.Put(rule.Name), nameof(rule));
+			if (!(rule.Container is Strategy strategy))
+				throw new ArgumentException(LocalizedStrings.Str1263Params.Put(rule), nameof(rule));
 
 			return strategy;
+		}
+
+		/// <summary>
+		/// Convert <see cref="Type"/> to <see cref="StrategyTypeMessage"/>.
+		/// </summary>
+		/// <param name="strategyType">Strategy type.</param>
+		/// <param name="transactionId">ID of the original message <see cref="ITransactionIdMessage.TransactionId"/> for which this message is a response.</param>
+		/// <returns>The message contains information about strategy type.</returns>
+		public static StrategyTypeMessage ToTypeMessage(this Type strategyType, long transactionId = 0)
+		{
+			if (strategyType == null)
+				throw new ArgumentNullException(nameof(strategyType));
+
+			return new StrategyTypeMessage
+			{
+				StrategyTypeId = strategyType.GetTypeName(false),
+				StrategyName = strategyType.Name,
+				OriginalTransactionId = transactionId,
+			};
 		}
 	}
 }

@@ -19,12 +19,11 @@ namespace StockSharp.Algo.Export
 	using System.Collections.Generic;
 	using System.Linq;
 
-	using Ecng.Configuration;
+	using Ecng.Common;
 
 	using MoreLinq;
 
 	using StockSharp.Algo.Storages;
-	using StockSharp.BusinessEntities;
 	using StockSharp.Messages;
 
 	/// <summary>
@@ -32,24 +31,23 @@ namespace StockSharp.Algo.Export
 	/// </summary>
 	public class StockSharpExporter : BaseExporter
 	{
+		private readonly IStorageRegistry _storageRegistry;
 		private readonly IMarketDataDrive _drive;
 		private readonly StorageFormats _format;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="StockSharpExporter"/>.
 		/// </summary>
-		/// <param name="security">Security.</param>
-		/// <param name="arg">The data parameter.</param>
-		/// <param name="isCancelled">The processor, returning export interruption sign.</param>
+		/// <param name="dataType">Data type info.</param>
+		/// <param name="isCancelled">The processor, returning process interruption sign.</param>
+		/// <param name="storageRegistry">The storage of market data.</param>
 		/// <param name="drive">Storage.</param>
 		/// <param name="format">Format type.</param>
-		public StockSharpExporter(Security security, object arg, Func<int, bool> isCancelled, IMarketDataDrive drive, StorageFormats format)
-			: base(security, arg, isCancelled, drive.Path)
+		public StockSharpExporter(DataType dataType, Func<int, bool> isCancelled, IStorageRegistry storageRegistry, IMarketDataDrive drive, StorageFormats format)
+			: base(dataType, isCancelled, drive.CheckOnNull().Path)
 		{
-			if (drive == null)
-				throw new ArgumentNullException(nameof(drive));
-
-			_drive = drive;
+			_storageRegistry = storageRegistry ?? throw new ArgumentNullException(nameof(storageRegistry));
+			_drive = drive ?? throw new ArgumentNullException(nameof(drive));
 			_format = format;
 		}
 
@@ -60,7 +58,7 @@ namespace StockSharp.Algo.Export
 		/// </summary>
 		public int BatchSize
 		{
-			get { return _batchSize; }
+			get => _batchSize;
 			set
 			{
 				if (value < 1)
@@ -70,91 +68,76 @@ namespace StockSharp.Algo.Export
 			}
 		}
 
-		private void Export<TMessage>(IEnumerable<TMessage> messages)
-			where TMessage : Message
+		private void Export(IEnumerable<Message> messages)
 		{
-			IMarketDataStorage<TMessage> storage = null;
-
-			foreach (var batch in messages.Batch(BatchSize).Select(b => b.ToArray()))
+			foreach (var batch in messages.Batch(BatchSize))
 			{
-				if (storage == null)
+				foreach (var group in batch.GroupBy(m => m.TryGetSecurityId()))
 				{
-					storage = (IMarketDataStorage<TMessage>)ConfigManager
-						.GetService<IStorageRegistry>()
-						.GetStorage(Security, typeof(TMessage), Arg, _drive);
-				}
+					var b = group.ToArray();
 
-				if (CanProcess(batch.Length))
-					storage.Save(batch);
+					var storage = _storageRegistry.GetStorage(group.Key ?? default, DataType.MessageType, DataType.Arg, _drive, _format);
+
+					if (!CanProcess(b.Length))
+						break;
+
+					storage.Save(b);
+				}
 			}
 		}
 
-		/// <summary>
-		/// To export <see cref="ExecutionMessage"/>.
-		/// </summary>
-		/// <param name="messages">Messages.</param>
-		protected override void Export(IEnumerable<ExecutionMessage> messages)
+		/// <inheritdoc />
+		protected override void ExportOrderLog(IEnumerable<ExecutionMessage> messages)
 		{
 			Export(messages);
 		}
 
-		/// <summary>
-		/// To export <see cref="QuoteChangeMessage"/>.
-		/// </summary>
-		/// <param name="messages">Messages.</param>
+		/// <inheritdoc />
+		protected override void ExportTicks(IEnumerable<ExecutionMessage> messages)
+		{
+			Export(messages);
+		}
+
+		/// <inheritdoc />
+		protected override void ExportTransactions(IEnumerable<ExecutionMessage> messages)
+		{
+			Export(messages);
+		}
+
+		/// <inheritdoc />
 		protected override void Export(IEnumerable<QuoteChangeMessage> messages)
 		{
 			Export(messages);
 		}
 
-		/// <summary>
-		/// To export <see cref="Level1ChangeMessage"/>.
-		/// </summary>
-		/// <param name="messages">Messages.</param>
+		/// <inheritdoc />
 		protected override void Export(IEnumerable<Level1ChangeMessage> messages)
 		{
 			Export(messages);
 		}
 
-		/// <summary>
-		/// To export <see cref="CandleMessage"/>.
-		/// </summary>
-		/// <param name="messages">Messages.</param>
-		protected override void Export(IEnumerable<CandleMessage> messages)
+		/// <inheritdoc />
+		protected override void Export(IEnumerable<PositionChangeMessage> messages)
 		{
-			foreach (var group in messages.GroupBy(m => m.GetType()))
-			{
-				var storage = ConfigManager
-					.GetService<IStorageRegistry>()
-					.GetCandleMessageStorage(group.Key, Security, Arg, _drive, _format);
-
-				foreach (var candleMessages in group.Batch(BatchSize).Select(b => b.ToArray()))
-				{
-					if (CanProcess(candleMessages.Length))
-						storage.Save(candleMessages);	
-				}
-
-				if (!CanProcess())
-					break;
-			}
+			Export(messages);
 		}
 
-		/// <summary>
-		/// To export <see cref="NewsMessage"/>.
-		/// </summary>
-		/// <param name="messages">Messages.</param>
+		/// <inheritdoc />
+		protected override void Export(IEnumerable<IndicatorValue> values) => throw new NotSupportedException();
+
+		/// <inheritdoc />
+		protected override void Export(IEnumerable<CandleMessage> messages)
+		{
+			Export(messages);
+		}
+
+		/// <inheritdoc />
 		protected override void Export(IEnumerable<NewsMessage> messages)
 		{
 			Export(messages);
 		}
 
-		/// <summary>
-		/// To export <see cref="SecurityMessage"/>.
-		/// </summary>
-		/// <param name="messages">Messages.</param>
-		protected override void Export(IEnumerable<SecurityMessage> messages)
-		{
-			throw new NotSupportedException();
-		}
+		/// <inheritdoc />
+		protected override void Export(IEnumerable<SecurityMessage> messages) => throw new NotSupportedException();
 	}
 }

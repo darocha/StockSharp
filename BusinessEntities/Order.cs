@@ -57,7 +57,7 @@ namespace StockSharp.BusinessEntities
 		[Nullable]
 		public TimeSpan? LatencyRegistration
 		{
-			get { return _latencyRegistration; }
+			get => _latencyRegistration;
 			set
 			{
 				if (_latencyRegistration == value)
@@ -80,7 +80,7 @@ namespace StockSharp.BusinessEntities
 		[Nullable]
 		public TimeSpan? LatencyCancellation
 		{
-			get { return _latencyCancellation; }
+			get => _latencyCancellation;
 			set
 			{
 				if (_latencyCancellation == value)
@@ -102,7 +102,7 @@ namespace StockSharp.BusinessEntities
 		[MainCategory]
 		public long? Id
 		{
-			get { return _id; }
+			get => _id;
 			set
 			{
 				if (_id == value)
@@ -124,7 +124,7 @@ namespace StockSharp.BusinessEntities
 		[MainCategory]
 		public string StringId
 		{
-			get { return _stringId; }
+			get => _stringId;
 			set
 			{
 				_stringId = value;
@@ -143,7 +143,7 @@ namespace StockSharp.BusinessEntities
 		[MainCategory]
 		public string BoardId
 		{
-			get { return _boardId; }
+			get => _boardId;
 			set
 			{
 				_boardId = value;
@@ -162,7 +162,7 @@ namespace StockSharp.BusinessEntities
 		[MainCategory]
 		public DateTimeOffset Time
 		{
-			get { return _time; }
+			get => _time;
 			set
 			{
 				if (_time == value)
@@ -170,14 +170,11 @@ namespace StockSharp.BusinessEntities
 
 				_time = value;
 				NotifyChanged(nameof(Time));
-
-				if (LastChangeTime.IsDefault())
-					LastChangeTime = value;
 			}
 		}
 
 		/// <summary>
-		/// Transaction ID. Automatically set when the <see cref="IConnector.RegisterOrder"/> method called.
+		/// Transaction ID. Automatically set when the <see cref="ITransactionProvider.RegisterOrder"/> method called.
 		/// </summary>
 		[DataMember]
 		[DisplayNameLoc(LocalizedStrings.TransactionKey)]
@@ -207,7 +204,7 @@ namespace StockSharp.BusinessEntities
 		[MainCategory]
 		public OrderStates State
 		{
-			get { return _state; }
+			get => _state;
 			set
 			{
 				if (_state == value)
@@ -253,7 +250,7 @@ namespace StockSharp.BusinessEntities
 		[MainCategory]
 		public DateTimeOffset LastChangeTime
 		{
-			get { return _lastChangeTime; }
+			get => _lastChangeTime;
 			set
 			{
 				if (_lastChangeTime == value)
@@ -275,7 +272,7 @@ namespace StockSharp.BusinessEntities
 		[MainCategory]
 		public DateTimeOffset LocalTime
 		{
-			get { return _localTime; }
+			get => _localTime;
 			set
 			{
 				if (_localTime == value)
@@ -295,24 +292,14 @@ namespace StockSharp.BusinessEntities
 		[MainCategory]
 		public decimal Price { get; set; }
 
-		private decimal _volume;
-
 		/// <summary>
-		/// Number of contracts in an order.
+		/// Number of contracts in the order.
 		/// </summary>
 		[DataMember]
 		[DisplayNameLoc(LocalizedStrings.VolumeKey)]
 		[DescriptionLoc(LocalizedStrings.OrderVolumeKey)]
 		[MainCategory]
-		public decimal Volume
-		{
-			get { return _volume; }
-			set
-			{
-				_volume = value;
-				VisibleVolume = value;
-			}
-		}
+		public decimal Volume { get; set; }
 
 		/// <summary>
 		/// Visible quantity of contracts in order.
@@ -336,7 +323,7 @@ namespace StockSharp.BusinessEntities
 		private decimal _balance;
 
 		/// <summary>
-		/// Order contracts remainder.
+		/// Order contracts balance.
 		/// </summary>
 		[DataMember]
 		[DisplayNameLoc(LocalizedStrings.Str130Key)]
@@ -344,7 +331,7 @@ namespace StockSharp.BusinessEntities
 		[MainCategory]
 		public decimal Balance
 		{
-			get { return _balance; }
+			get => _balance;
 			set
 			{
 				if (_balance == value)
@@ -365,7 +352,7 @@ namespace StockSharp.BusinessEntities
 		[Browsable(false)]
 		public long? Status
 		{
-			get { return _status; }
+			get => _status;
 			set
 			{
 				if (_status == value)
@@ -388,7 +375,7 @@ namespace StockSharp.BusinessEntities
 		[Nullable]
 		public bool? IsSystem
 		{
-			get { return _isSystem; }
+			get => _isSystem;
 			set
 			{
 				if (_isSystem == value)
@@ -424,7 +411,7 @@ namespace StockSharp.BusinessEntities
 		/// Order expiry time. The default is <see langword="null" />, which mean (GTC).
 		/// </summary>
 		/// <remarks>
-		/// If the value is <see cref="DateTimeOffset.MaxValue"/>, then the order is registered until cancel. Otherwise, the period is specified.
+		/// If the value is <see langword="null"/>, then the order is registered until cancel. Otherwise, the period is specified.
 		/// </remarks>
 		[DataMember]
 		[DisplayNameLoc(LocalizedStrings.Str141Key)]
@@ -432,7 +419,7 @@ namespace StockSharp.BusinessEntities
 		[MainCategory]
 		public DateTimeOffset? ExpiryDate
 		{
-			get { return _expiryDate; }
+			get => _expiryDate;
 			set
 			{
 				if (_expiryDate == value)
@@ -469,15 +456,17 @@ namespace StockSharp.BusinessEntities
 		/// <summary>
 		/// Exchange order that was created by the stop-order when the condition is activated (<see langword="null" /> if a stop condition has not been activated).
 		/// </summary>
-		[DataMember]
-		[InnerSchema]
+		//[DataMember]
+		//[InnerSchema]
 		[Ignore]
+		[XmlIgnore]
 		[DisplayNameLoc(LocalizedStrings.Str532Key)]
 		[DescriptionLoc(LocalizedStrings.Str533Key)]
 		[CategoryLoc(LocalizedStrings.Str156Key)]
+		[Obsolete("No longer used.")]
 		public Order DerivedOrder
 		{
-			get { return _derivedOrder; }
+			get => _derivedOrder;
 			set
 			{
 				if (_derivedOrder == value)
@@ -488,41 +477,19 @@ namespace StockSharp.BusinessEntities
 			}
 		}
 
-		/// <summary>
-		/// Information for REPO\REPO-M orders.
-		/// </summary>
-		[Ignore]
-		[DisplayNameLoc(LocalizedStrings.Str233Key)]
-		[DescriptionLoc(LocalizedStrings.Str234Key)]
-		[MainCategory]
-		public RepoOrderInfo RepoInfo { get; set; }
-
-		/// <summary>
-		/// Information for Negotiate Deals Mode orders.
-		/// </summary>
-		[Ignore]
-		[DisplayNameLoc(LocalizedStrings.Str235Key)]
-		[DescriptionLoc(LocalizedStrings.Str236Key)]
-		[MainCategory]
-		public RpsOrderInfo RpsInfo { get; set; }
-
 		[field: NonSerialized]
-		private SynchronizedDictionary<object, object> _extensionInfo;
+		private SynchronizedDictionary<string, object> _extensionInfo;
 
-		/// <summary>
-		/// Extended information on order.
-		/// </summary>
-		/// <remarks>
-		/// Required if additional information associated with the order is stored in the program. For example, the activation time, the yield for usual orders or the condition order ID for a stop order.
-		/// </remarks>
+		/// <inheritdoc />
 		[Ignore]
 		[XmlIgnore]
 		[DisplayNameLoc(LocalizedStrings.ExtendedInfoKey)]
 		[DescriptionLoc(LocalizedStrings.Str427Key)]
 		[MainCategory]
-		public IDictionary<object, object> ExtensionInfo
+		[Obsolete]
+		public IDictionary<string, object> ExtensionInfo
 		{
-			get { return _extensionInfo; }
+			get => _extensionInfo;
 			set
 			{
 				_extensionInfo = value.Sync();
@@ -531,7 +498,7 @@ namespace StockSharp.BusinessEntities
 		}
 
 		/// <summary>
-		/// Comission (broker, exchange etc.).
+		/// Commission (broker, exchange etc.).
 		/// </summary>
 		[DataMember]
 		[Nullable]
@@ -540,29 +507,10 @@ namespace StockSharp.BusinessEntities
 		[MainCategory]
 		public decimal? Commission { get; set; }
 
-		//[field: NonSerialized]
-		//private IConnector _connector;
-
-		///// <summary>
-		///// Connection to the trading system, through which this order has been registered.
-		///// </summary>
-		//[Ignore]
-		//[XmlIgnore]
-		//[Browsable(false)]
-		//[Obsolete("The property Connector was obsoleted and is always null.")]
-		//public IConnector Connector
-		//{
-		//	get { return _connector; }
-		//	set
-		//	{
-		//		if (_connector == value)
-		//			return;
-
-		//		_connector = value;
-
-		//		NotifyChanged(nameof(Connector));
-		//	}
-		//}
+		/// <summary>
+		/// Commission currency. Can be <see lnagword="null"/>.
+		/// </summary>
+		public string CommissionCurrency { get; set; }
 
 		/// <summary>
 		/// User's order ID.
@@ -602,13 +550,89 @@ namespace StockSharp.BusinessEntities
 		public CurrencyTypes? Currency { get; set; }
 
 		/// <summary>
-		/// Returns a string that represents the current object.
+		/// Is the order of market-maker.
 		/// </summary>
-		/// <returns>A string that represents the current object.</returns>
+		[DataMember]
+		[DisplayNameLoc(LocalizedStrings.MarketMakerKey)]
+		[DescriptionLoc(LocalizedStrings.MarketMakerOrderKey, true)]
+		public bool? IsMarketMaker { get; set; }
+
+		/// <summary>
+		/// Is margin enabled.
+		/// </summary>
+		[DataMember]
+		[DisplayNameLoc(LocalizedStrings.MarginKey)]
+		[DescriptionLoc(LocalizedStrings.IsMarginKey)]
+		public bool? IsMargin { get; set; }
+
+		/// <summary>
+		/// Slippage in trade price.
+		/// </summary>
+		[DataMember]
+		[DisplayNameLoc(LocalizedStrings.Str163Key)]
+		[DescriptionLoc(LocalizedStrings.Str164Key)]
+		public decimal? Slippage { get; set; }
+
+		/// <summary>
+		/// Is order manual.
+		/// </summary>
+		[DataMember]
+		[DisplayNameLoc(LocalizedStrings.ManualKey)]
+		[DescriptionLoc(LocalizedStrings.IsOrderManualKey)]
+		public bool? IsManual { get; set; }
+
+		/// <summary>
+		/// Average execution price.
+		/// </summary>
+		[DataMember]
+		public decimal? AveragePrice { get; set; }
+
+		/// <summary>
+		/// Yield.
+		/// </summary>
+		[DataMember]
+		public decimal? Yield { get; set; }
+
+		/// <summary>
+		/// Minimum quantity of an order to be executed.
+		/// </summary>
+		[DataMember]
+		public decimal? MinVolume { get; set; }
+
+		/// <summary>
+		/// Position effect.
+		/// </summary>
+		[DataMember]
+		public OrderPositionEffects? PositionEffect { get; set; }
+
+		/// <summary>
+		/// Post-only order.
+		/// </summary>
+		[DataMember]
+		public bool? PostOnly { get; set; }
+
+		/// <inheritdoc />
 		public override string ToString()
 		{
-			return LocalizedStrings.Str534Params
-				.Put(TransactionId, Id == null ? StringId : Id.To<string>(), Direction == Sides.Buy ? LocalizedStrings.Str403 : LocalizedStrings.Str404, Price, Volume, State, Balance);
+			var str = LocalizedStrings.Str534Params
+				.Put(TransactionId, Id == null ? StringId : Id.To<string>(), Security?.Id, Portfolio?.Name, Direction == Sides.Buy ? LocalizedStrings.Str403 : LocalizedStrings.Str404, Price, Volume, State, Balance, Type);
+
+			if (Condition != null)
+				str += $" Condition={Condition}";
+
+			if (AveragePrice != null)
+				str += $" AvgPrice={AveragePrice}";
+
+			if (MinVolume != null)
+				str += $" MinVolume={MinVolume}";
+
+			if (PositionEffect != null)
+				str += $" PosEffect={PositionEffect.Value}";
+
+			if (PostOnly != null)
+				str += $",PostOnly={PostOnly.Value}";
+
+			return str;
 		}
 	}
 }

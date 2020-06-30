@@ -41,7 +41,7 @@ namespace StockSharp.Algo.Strategies.Testing
 		[Browsable(false)]
 		public DateTime StartTime
 		{
-			get { return _startTime; }
+			get => _startTime;
 			set
 			{
 				_startTime = value;
@@ -57,7 +57,7 @@ namespace StockSharp.Algo.Strategies.Testing
 		[Browsable(false)]
 		public DateTime StopTime
 		{
-			get { return _stopTime; }
+			get => _stopTime;
 			set
 			{
 				_stopTime = value;
@@ -80,7 +80,7 @@ namespace StockSharp.Algo.Strategies.Testing
 			Order = 100)]
 		public TimeSpan MarketTimeChangedInterval
 		{
-			get { return _marketTimeChangedInterval; }
+			get => _marketTimeChangedInterval;
 			set
 			{
 				if (value <= TimeSpan.Zero)
@@ -105,7 +105,7 @@ namespace StockSharp.Algo.Strategies.Testing
 		[DefaultValue(typeof(TimeSpan), "00:01:00")]
 		public TimeSpan? UnrealizedPnLInterval
 		{
-			get { return _unrealizedPnLInterval; }
+			get => _unrealizedPnLInterval;
 			set
 			{
 				if (value <= TimeSpan.Zero)
@@ -129,7 +129,7 @@ namespace StockSharp.Algo.Strategies.Testing
 			Order = 102)]
 		public EmulationMarketDataModes TradeDataMode
 		{
-			get { return _tradeDataMode; }
+			get => _tradeDataMode;
 			set
 			{
 				_tradeDataMode = value;
@@ -150,7 +150,7 @@ namespace StockSharp.Algo.Strategies.Testing
 			Order = 103)]
 		public EmulationMarketDataModes DepthDataMode
 		{
-			get { return _depthDataMode; }
+			get => _depthDataMode;
 			set
 			{
 				_depthDataMode = value;
@@ -171,7 +171,7 @@ namespace StockSharp.Algo.Strategies.Testing
 			Order = 104)]
 		public EmulationMarketDataModes OrderLogDataMode
 		{
-			get { return _orderLogDataMode; }
+			get => _orderLogDataMode;
 			set
 			{
 				_orderLogDataMode = value;
@@ -179,7 +179,7 @@ namespace StockSharp.Algo.Strategies.Testing
 			}
 		}
 
-		private int _batchSize = 10;
+		private int _batchSize = Environment.ProcessorCount * 2;
 
 		/// <summary>
 		/// Number of simultaneously tested strategies.
@@ -189,14 +189,35 @@ namespace StockSharp.Algo.Strategies.Testing
 			Name = LocalizedStrings.Str1418Key,
 			Description = LocalizedStrings.Str1419Key,
 			GroupName = LocalizedStrings.Str1174Key,
-			Order = 104)]
+			Order = 105)]
 		public int BatchSize
 		{
-			get { return _batchSize; }
+			get => _batchSize;
 			set
 			{
 				_batchSize = value;
 				NotifyPropertyChanged(nameof(BatchSize));
+			}
+		}
+
+		private bool _checkTradableDates = true;
+
+		/// <summary>
+		/// Check loading dates are they tradable.
+		/// </summary>
+		[Display(
+			ResourceType = typeof(LocalizedStrings),
+			Name = LocalizedStrings.CheckDatesKey,
+			Description = LocalizedStrings.CheckDatesDescKey,
+			GroupName = LocalizedStrings.Str1174Key,
+			Order = 106)]
+		public bool CheckTradableDates
+		{
+			get => _checkTradableDates;
+			set
+			{
+				_checkTradableDates = value;
+				NotifyPropertyChanged(nameof(CheckTradableDates));
 			}
 		}
 
@@ -218,7 +239,7 @@ namespace StockSharp.Algo.Strategies.Testing
 			Order = 200)]
 		public LogLevels LogLevel
 		{
-			get { return _logLevel; }
+			get => _logLevel;
 			set
 			{
 				_logLevel = value;
@@ -254,6 +275,7 @@ namespace StockSharp.Algo.Strategies.Testing
 			storage.SetValue(nameof(LogLevel), LogLevel.To<string>());
 			storage.SetValue(nameof(TradeDataMode), TradeDataMode.To<string>());
 			storage.SetValue(nameof(BatchSize), BatchSize);
+			storage.SetValue(nameof(CheckTradableDates), CheckTradableDates);
 		}
 
 		/// <summary>
@@ -273,6 +295,7 @@ namespace StockSharp.Algo.Strategies.Testing
 			LogLevel = storage.GetValue(nameof(LogLevel), LogLevel);
 			TradeDataMode = storage.GetValue(nameof(TradeDataMode), TradeDataMode);
 			BatchSize = storage.GetValue(nameof(BatchSize), BatchSize);
+			CheckTradableDates = storage.GetValue(nameof(CheckTradableDates), CheckTradableDates);
 		}
 	}
 }

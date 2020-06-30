@@ -17,11 +17,28 @@ namespace StockSharp.Messages
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Security;
 
 	using Ecng.Common;
 	using Ecng.Serialization;
 
 	using StockSharp.Logging;
+
+	/// <summary>
+	/// Types of <see cref="OrderCancelMessage.Volume"/> required to cancel orders.
+	/// </summary>
+	public enum OrderCancelVolumeRequireTypes
+	{
+		/// <summary>
+		/// Non filled balance.
+		/// </summary>
+		Balance,
+
+		/// <summary>
+		/// Initial volume.
+		/// </summary>
+		Volume
+	}
 
 	/// <summary>
 	/// Base message adapter interface which convert messages <see cref="Message"/> to native commands and back.
@@ -34,14 +51,29 @@ namespace StockSharp.Messages
 		IdGenerator TransactionIdGenerator { get; }
 
 		/// <summary>
-		/// Supported by adapter message types.
+		/// Possible supported by adapter message types.
 		/// </summary>
-		MessageTypes[] SupportedMessages { get; set; }
+		IEnumerable<MessageTypeInfo> PossibleSupportedMessages { get; }
 
 		/// <summary>
-		/// The parameters validity check.
+		/// Supported by adapter message types.
 		/// </summary>
-		bool IsValid { get; }
+		IEnumerable<MessageTypes> SupportedInMessages { get; set; }
+
+		/// <summary>
+		/// Supported by adapter message types.
+		/// </summary>
+		IEnumerable<MessageTypes> SupportedOutMessages { get; }
+
+		/// <summary>
+		/// Supported by adapter result message types.
+		/// </summary>
+		IEnumerable<MessageTypes> SupportedResultMessages { get; }
+
+		/// <summary>
+		/// Supported by adapter market data types.
+		/// </summary>
+		IEnumerable<DataType> SupportedMarketDataTypes { get; }
 
 		/// <summary>
 		/// Description of the class of securities, depending on which will be marked in the <see cref="SecurityMessage.SecurityType"/> and <see cref="SecurityId.BoardCode"/>.
@@ -49,51 +81,130 @@ namespace StockSharp.Messages
 		IDictionary<string, RefPair<SecurityTypes, string>> SecurityClassInfo { get; }
 
 		/// <summary>
+		/// Possible options for candles building.
+		/// </summary>
+		IEnumerable<Level1Fields> CandlesBuildFrom { get; }
+
+		/// <summary>
+		/// Check possible time-frame by request.
+		/// </summary>
+		bool CheckTimeFrameByRequest { get; }
+
+		/// <summary>
 		/// Connection tracking settings <see cref="IMessageAdapter"/> with a server.
 		/// </summary>
 		ReConnectionSettings ReConnectionSettings { get; }
 
 		/// <summary>
-		/// Lifetime ping interval.
+		///  Server check interval for track the connection alive. The value is <see cref="TimeSpan.Zero"/> turned off tracking.
 		/// </summary>
 		TimeSpan HeartbeatInterval { get; set; }
 
 		/// <summary>
-		/// <see cref="PortfolioLookupMessage"/> required to get portfolios and positions.
+		/// The storage name, associated with the adapter.
 		/// </summary>
-		bool PortfolioLookupRequired { get; }
+		string StorageName { get; }
 
 		/// <summary>
-		/// <see cref="SecurityLookupMessage"/> required to get securities.
+		/// Native identifier can be stored.
 		/// </summary>
-		bool SecurityLookupRequired { get; }
+		bool IsNativeIdentifiersPersistable { get; }
 
 		/// <summary>
-		/// <see cref="OrderStatusMessage"/> required to get orders and ow trades.
+		/// Identify security in messages by native identifier <see cref="SecurityId.Native"/>.
 		/// </summary>
-		bool OrderStatusRequired { get; }
+		bool IsNativeIdentifiers { get; }
+
+		/// <summary>
+		/// Translates <see cref="CandleMessage"/> as only fully filled.
+		/// </summary>
+		bool IsFullCandlesOnly { get; }
+
+		/// <summary>
+		/// Support any subscriptions (ticks, order books etc.).
+		/// </summary>
+		bool IsSupportSubscriptions { get; }
+
+		/// <summary>
+		/// Support candles subscription and live updates.
+		/// </summary>
+		bool IsSupportCandlesUpdates { get; }
+
+		/// <summary>
+		/// Support candles <see cref="CandleMessage.PriceLevels"/>.
+		/// </summary>
+		bool IsSupportCandlesPriceLevels { get; }
+
+		/// <summary>
+		/// Message adapter categories.
+		/// </summary>
+		MessageAdapterCategories Categories { get; }
 
 		/// <summary>
 		/// <see cref="OrderCancelMessage.Volume"/> required to cancel orders.
 		/// </summary>
-		bool OrderCancelVolumeRequired { get; }
+		OrderCancelVolumeRequireTypes? OrderCancelVolumeRequired { get; }
 
 		/// <summary>
-		/// Board code for combined security.
+		/// Names of extended security fields in <see cref="SecurityMessage"/>.
 		/// </summary>
-		string AssociatedBoardCode { get; }
+		IEnumerable<Tuple<string, Type>> SecurityExtendedFields { get; }
 
 		/// <summary>
-		/// Create condition for order type <see cref="OrderTypes.Conditional"/>, that supports the adapter.
+		/// Available options for <see cref="MarketDataMessage.MaxDepth"/>.
 		/// </summary>
-		/// <returns>Order condition. If the connection does not support the order type <see cref="OrderTypes.Conditional"/>, it will be returned <see langword="null" />.</returns>
-		OrderCondition CreateOrderCondition();
+		IEnumerable<int> SupportedOrderBookDepths { get; }
 
 		/// <summary>
-		/// Check the connection is alive. Uses only for connected states.
+		/// Adapter translates incremental order books.
 		/// </summary>
-		/// <returns><see langword="true" />, is the connection still alive, <see langword="false" />, if the connection was rejected.</returns>
-		bool IsConnectionAlive();
+		bool IsSupportOrderBookIncrements { get; }
+
+		/// <summary>
+		/// Adapter fills <see cref="ExecutionMessage.PnL"/>.
+		/// </summary>
+		bool IsSupportExecutionsPnL { get; }
+
+		/// <summary>
+		/// Adapter provides news related with specified security.
+		/// </summary>
+		bool IsSecurityNewsOnly { get; }
+
+		/// <summary>
+		/// Enqueue subscriptions.
+		/// </summary>
+		/// <remarks>
+		/// Do not send new request before received confirmation for previous.
+		/// </remarks>
+		bool EnqueueSubscriptions { get; set; }
+
+		/// <summary>
+		/// Type of <see cref="OrderCondition"/>.
+		/// </summary>
+		/// <remarks>
+		/// If the connection does not support the order type <see cref="OrderTypes.Conditional"/>, it will be returned <see langword="null" />.
+		/// </remarks>
+		Type OrderConditionType { get; }
+
+		/// <summary>
+		/// Start sending <see cref="TimeMessage"/> before connection established.
+		/// </summary>
+		bool HeartbeatBeforConnect { get; }
+
+		/// <summary>
+		/// Icon.
+		/// </summary>
+		Uri Icon { get; }
+
+		/// <summary>
+		/// Send auto response for <see cref="OrderStatusMessage"/> and <see cref="PortfolioLookupMessage"/> unsubscribes.
+		/// </summary>
+		bool IsAutoReplyOnTransactonalUnsubscription { get; }
+
+		/// <summary>
+		/// Adapters translates orders changes on reply of <see cref="OrderStatusMessage"/>.
+		/// </summary>
+		bool IsSupportTransactionLog { get; }
 
 		/// <summary>
 		/// Create market depth builder.
@@ -101,5 +212,129 @@ namespace StockSharp.Messages
 		/// <param name="securityId">Security ID.</param>
 		/// <returns>Order log to market depth builder.</returns>
 		IOrderLogMarketDepthBuilder CreateOrderLogMarketDepthBuilder(SecurityId securityId);
+
+		/// <summary>
+		/// Get possible args for the specified candle type and instrument.
+		/// </summary>
+		/// <param name="candleType">The type of the message <see cref="CandleMessage"/>.</param>
+		/// <param name="securityId">Security ID.</param>
+		/// <param name="from">The initial date from which you need to get data.</param>
+		/// <param name="to">The final date by which you need to get data.</param>
+		/// <returns>Possible args.</returns>
+		IEnumerable<object> GetCandleArgs(Type candleType, SecurityId securityId, DateTimeOffset? from, DateTimeOffset? to);
+
+		/// <summary>
+		/// Get maximum size step allowed for historical download.
+		/// </summary>
+		/// <param name="dataType">Data type info.</param>
+		/// <param name="iterationInterval">Interval between iterations.</param>
+		/// <returns>Step.</returns>
+		TimeSpan GetHistoryStepSize(DataType dataType, out TimeSpan iterationInterval);
+
+		/// <summary>
+		/// Is for the specified <paramref name="dataType"/> all securities downloading enabled.
+		/// </summary>
+		/// <param name="dataType">Data type info.</param>
+		/// <returns>Check result.</returns>
+		bool IsAllDownloadingSupported(DataType dataType);
+
+		/// <summary>
+		/// Support filtering subscriptions (subscribe/unsubscribe for specified security).
+		/// </summary>
+		/// <param name="dataType">Data type info.</param>
+		/// <returns>Check result.</returns>
+		bool IsSecurityRequired(DataType dataType);
+
+		/// <summary>
+		/// Use <see cref="IMessageChannel"/> for in and out messages.
+		/// </summary>
+		bool UseChannels { get; }
+
+		/// <summary>
+		/// Feature name.
+		/// </summary>
+		string FeatureName { get; }
+	}
+
+	/// <summary>
+	/// Message adapter, provided <see cref="Key"/> and <see cref="Secret"/> properties.
+	/// </summary>
+	public interface IKeySecretAdapter
+	{
+		/// <summary>
+		/// Key.
+		/// </summary>
+		SecureString Key { get; set; }
+
+		/// <summary>
+		/// Secret.
+		/// </summary>
+		SecureString Secret { get; set; }
+	}
+
+	/// <summary>
+	/// Message adapter, provided <see cref="Login"/> and <see cref="Password"/> properties.
+	/// </summary>
+	public interface ILoginPasswordAdapter
+	{
+		/// <summary>
+		/// Login.
+		/// </summary>
+		string Login { get; set; }
+
+		/// <summary>
+		/// Password.
+		/// </summary>
+		SecureString Password { get; set; }
+	}
+
+	/// <summary>
+	/// Message adapter, provided <see cref="Token"/> property.
+	/// </summary>
+	public interface ITokenAdapter
+	{
+		/// <summary>
+		/// Token.
+		/// </summary>
+		SecureString Token { get; set; }
+	}
+
+	/// <summary>
+	/// Message adapter, provided <see cref="IsDemo"/> property.
+	/// </summary>
+	public interface IDemoAdapter
+	{
+		/// <summary>
+		/// Connect to demo trading instead of real trading server.
+		/// </summary>
+		bool IsDemo { get; set; }
+	}
+
+	/// <summary>
+	/// Message adapter, provided <see cref="Address"/> property.
+	/// </summary>
+	/// <typeparam name="TAddress">Address type.</typeparam>
+	public interface IAddressAdapter<TAddress>
+	{
+		/// <summary>
+		/// Server address.
+		/// </summary>
+		TAddress Address { get; set; }
+	}
+
+	/// <summary>
+	/// Message adapter, provided <see cref="SenderCompId"/> and <see cref="TargetCompId"/> properties.
+	/// </summary>
+	public interface ISenderTargetAdapter
+	{
+		/// <summary>
+		/// Sender ID.
+		/// </summary>
+		string SenderCompId { get; set; }
+
+		/// <summary>
+		/// Target ID.
+		/// </summary>
+		string TargetCompId { get; set; }
 	}
 }

@@ -31,6 +31,11 @@ namespace StockSharp.Algo.Storages
 		StorageFormats Format { get; }
 
 		/// <summary>
+		/// Time precision.
+		/// </summary>
+		TimeSpan TimePrecision { get; }
+
+		/// <summary>
 		/// To create empty meta-information.
 		/// </summary>
 		/// <param name="date">Date.</param>
@@ -38,7 +43,7 @@ namespace StockSharp.Algo.Storages
 		IMarketDataMetaInfo CreateMetaInfo(DateTime date);
 
 		/// <summary>
-		/// Cast data into stream.
+		/// Save data into stream.
 		/// </summary>
 		/// <param name="stream">Data stream.</param>
 		/// <param name="data">Data.</param>
@@ -61,7 +66,7 @@ namespace StockSharp.Algo.Storages
 	public interface IMarketDataSerializer<TData> : IMarketDataSerializer
 	{
 		/// <summary>
-		/// Cast data into stream.
+		/// Save data into stream.
 		/// </summary>
 		/// <param name="stream">Data stream.</param>
 		/// <param name="data">Data.</param>

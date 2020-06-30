@@ -1,0 +1,102 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\common.props" />
+  <PropertyGroup>
+    <ProjectGuid>{7D6C7AD7-2735-4BC0-8E37-B21584E43264}</ProjectGuid>
+    <RootNamespace>StockSharp.Configuration</RootNamespace>
+    <AssemblyName>StockSharp.Configuration.Adapters</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="StockSharp.AlfaDirect" Version="5.*" />
+    <PackageReference Include="StockSharp.AlorHistory" Version="5.*" />
+    <PackageReference Include="StockSharp.AlphaVantage" Version="5.*" />
+    <PackageReference Include="StockSharp.BarChart" Version="5.*" />
+    <PackageReference Include="StockSharp.BiboxStub" Version="5.*" />
+    <PackageReference Include="StockSharp.BinanceStub" Version="5.*" />
+    <PackageReference Include="StockSharp.BitalongStub" Version="5.*" />
+    <PackageReference Include="StockSharp.BitbankStub" Version="5.*" />
+    <PackageReference Include="StockSharp.BitexbookStub" Version="5.*" />
+    <PackageReference Include="StockSharp.BitfinexStub" Version="5.*" />
+    <PackageReference Include="StockSharp.BithumbStub" Version="5.*" />
+    <PackageReference Include="StockSharp.BitMaxStub" Version="5.*" />
+    <PackageReference Include="StockSharp.BitmexStub" Version="5.*" />
+    <PackageReference Include="StockSharp.BitStampStub" Version="5.*" />
+    <PackageReference Include="StockSharp.BittrexStub" Version="5.*" />
+    <PackageReference Include="StockSharp.BitZStub" Version="5.*" />
+    <PackageReference Include="StockSharp.BtceStub" Version="5.*" />
+    <PackageReference Include="StockSharp.BWStub" Version="5.*" />
+    <PackageReference Include="StockSharp.CexStub" Version="5.*" />
+    <PackageReference Include="StockSharp.CoinbaseStub" Version="5.*" />
+    <PackageReference Include="StockSharp.CoinBeneStub" Version="5.*" />
+    <PackageReference Include="StockSharp.CoinCapStub" Version="5.*" />
+    <PackageReference Include="StockSharp.CoincheckStub" Version="5.*" />
+    <PackageReference Include="StockSharp.CoinExchangeStub" Version="5.*" />
+    <PackageReference Include="StockSharp.CoinExStub" Version="5.*" />
+    <PackageReference Include="StockSharp.CoinHubStub" Version="5.*" />
+    <PackageReference Include="StockSharp.CoinigyStub" Version="5.*" />
+    <PackageReference Include="StockSharp.Cqg.Com" Version="5.*" />
+    <PackageReference Include="StockSharp.Cqg.Continuum" Version="5.*" />
+    <PackageReference Include="StockSharp.CryptopiaStub" Version="5.*" />
+    <PackageReference Include="StockSharp.CSV" Version="5.*" />
+    <PackageReference Include="StockSharp.DeribitStub" Version="5.*" />
+    <PackageReference Include="StockSharp.DigifinexStub" Version="5.*" />
+    <PackageReference Include="StockSharp.DukasCopy" Version="5.*" />
+    <PackageReference Include="StockSharp.ETrade" Version="5.*" />
+    <PackageReference Include="StockSharp.ExmoStub" Version="5.*" />
+    <PackageReference Include="StockSharp.FatBTCStub" Version="5.*" />
+    <PackageReference Include="StockSharp.Finam" Version="5.*" />
+    <PackageReference Include="StockSharp.FinViz" Version="5.*" />
+    <PackageReference Include="StockSharp.Fix" Version="5.*" />
+    <PackageReference Include="StockSharp.Fxcm" Version="5.*" />
+    <PackageReference Include="StockSharp.GdaxStub" Version="5.*" />
+    <PackageReference Include="StockSharp.Google" Version="5.*" />
+    <PackageReference Include="StockSharp.GopaxStub" Version="5.*" />
+    <PackageReference Include="StockSharp.HitBtcStub" Version="5.*" />
+    <PackageReference Include="StockSharp.HotbitStub" Version="5.*" />
+    <PackageReference Include="StockSharp.HuobiStub" Version="5.*" />
+    <PackageReference Include="StockSharp.IdaxStub" Version="5.*" />
+    <PackageReference Include="StockSharp.IEX" Version="5.*" />
+    <PackageReference Include="StockSharp.InteractiveBrokers" Version="5.*" />
+    <PackageReference Include="StockSharp.IQFeed" Version="5.*" />
+    <PackageReference Include="StockSharp.ITCH" Version="5.*" />
+    <PackageReference Include="StockSharp.KrakenStub" Version="5.*" />
+    <PackageReference Include="StockSharp.KucoinStub" Version="5.*" />
+    <PackageReference Include="StockSharp.LATOKENStub" Version="5.*" />
+    <PackageReference Include="StockSharp.LBankStub" Version="5.*" />
+    <PackageReference Include="StockSharp.LiquiStub" Version="5.*" />
+    <PackageReference Include="StockSharp.LiveCoinStub" Version="5.*" />
+    <PackageReference Include="StockSharp.LMAX" Version="5.*" />
+    <PackageReference Include="StockSharp.Mfd" Version="5.*" />
+    <PackageReference Include="StockSharp.Micex" Version="5.*" />
+    <PackageReference Include="StockSharp.Oanda" Version="5.*" />
+    <PackageReference Include="StockSharp.OkcoinStub" Version="5.*" />
+    <PackageReference Include="StockSharp.OkexStub" Version="5.*" />
+    <PackageReference Include="StockSharp.Plaza" Version="5.*" />
+    <PackageReference Include="StockSharp.PoloniexStub" Version="5.*" />
+    <PackageReference Include="StockSharp.PrizmBitStub" Version="5.*" />
+    <PackageReference Include="StockSharp.Quandl" Version="5.*" />
+    <PackageReference Include="StockSharp.QuantHouse" Version="5.*" />
+    <PackageReference Include="StockSharp.Quik" Version="5.*" />
+    <PackageReference Include="StockSharp.QuoinexStub" Version="5.*" />
+    <PackageReference Include="StockSharp.Rithmic" Version="5.*" />
+    <PackageReference Include="StockSharp.Rss" Version="5.*" />
+    <PackageReference Include="StockSharp.SmartCom" Version="5.*" />
+    <PackageReference Include="StockSharp.SpbEx" Version="5.*" />
+    <PackageReference Include="StockSharp.Sterling" Version="5.*" />
+    <PackageReference Include="StockSharp.TradeOgreStub" Version="5.*" />
+    <PackageReference Include="StockSharp.Tradier" Version="5.*" />
+    <PackageReference Include="StockSharp.Transaq" Version="5.*" />
+    <PackageReference Include="StockSharp.Twime" Version="5.*" />
+    <PackageReference Include="StockSharp.UkrExh" Version="5.*" />
+    <PackageReference Include="StockSharp.UpbitStub" Version="5.*" />
+    <PackageReference Include="StockSharp.Xignite" Version="5.*" />
+    <PackageReference Include="StockSharp.Yahoo" Version="5.*" />
+    <PackageReference Include="StockSharp.YobitStub" Version="5.*" />
+    <PackageReference Include="StockSharp.ZaifStub" Version="5.*" />
+    <PackageReference Include="StockSharp.ZBStub" Version="5.*" />
+    <PackageReference Include="StockSharp.DigitexFuturesStub" Version="5.*" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Configuration\ConfigurationGitHub.csproj" />
+    <ProjectReference Include="..\Messages\Messages.csproj" />
+  </ItemGroup>
+</Project>

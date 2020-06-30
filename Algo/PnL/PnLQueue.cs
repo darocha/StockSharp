@@ -21,6 +21,7 @@ namespace StockSharp.Algo.PnL
 	using Ecng.Collections;
 	using Ecng.Common;
 
+	using StockSharp.Localization;
 	using StockSharp.Messages;
 
 	/// <summary>
@@ -45,7 +46,7 @@ namespace StockSharp.Algo.PnL
 		/// <summary>
 		/// Security ID.
 		/// </summary>
-		public SecurityId SecurityId { get; private set; }
+		public SecurityId SecurityId { get; }
 
 		private decimal _priceStep = 1;
 
@@ -54,29 +55,29 @@ namespace StockSharp.Algo.PnL
 		/// </summary>
 		public decimal PriceStep
 		{
-			get { return _priceStep; }
+			get => _priceStep;
 			private set
 			{
 				if (value <= 0)
-					throw new ArgumentOutOfRangeException(nameof(value));
+					throw new ArgumentOutOfRangeException(nameof(value), value, LocalizedStrings.Str1219);
 
 				_priceStep = value;
 				UpdateMultiplier();
 			}
 		}
 
-		private decimal _stepPrice = 1;
+		private decimal? _stepPrice;
 
 		/// <summary>
 		/// Step price.
 		/// </summary>
-		public decimal StepPrice
+		public decimal? StepPrice
 		{
-			get { return _stepPrice; }
+			get => _stepPrice;
 			private set
 			{
 				if (value <= 0)
-					throw new ArgumentOutOfRangeException(nameof(value));
+					throw new ArgumentOutOfRangeException(nameof(value), value, LocalizedStrings.Str1219);
 
 				_stepPrice = value;
 				UpdateMultiplier();
@@ -90,11 +91,11 @@ namespace StockSharp.Algo.PnL
 		/// </summary>
 		public decimal Leverage
 		{
-			get { return _leverage; }
+			get => _leverage;
 			set
 			{
 				if (value <= 0)
-					throw new ArgumentOutOfRangeException(nameof(value));
+					throw new ArgumentOutOfRangeException(nameof(value), value, LocalizedStrings.Str1219);
 
 				_leverage = value;
 				UpdateMultiplier();
@@ -108,11 +109,11 @@ namespace StockSharp.Algo.PnL
 		/// </summary>
 		public decimal LotMultiplier
 		{
-			get { return _lotMultiplier; }
+			get => _lotMultiplier;
 			set
 			{
 				if (value <= 0)
-					throw new ArgumentOutOfRangeException(nameof(value));
+					throw new ArgumentOutOfRangeException(nameof(value), value, LocalizedStrings.Str1219);
 
 				_lotMultiplier = value;
 				UpdateMultiplier();
@@ -313,7 +314,9 @@ namespace StockSharp.Algo.PnL
 
 		private void UpdateMultiplier()
 		{
-			_multiplier = (StepPrice / PriceStep) * Leverage * LotMultiplier;
+			var stepPrice = StepPrice;
+
+			_multiplier = (stepPrice == null ? 1 : stepPrice.Value / PriceStep) * Leverage * LotMultiplier;
 		}
 
 		private static decimal GetPnL(decimal price, decimal volume, Sides side, decimal marketPrice)

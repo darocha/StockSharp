@@ -36,10 +36,7 @@ namespace StockSharp.Algo.Storages.Csv
 		public CsvMetaInfo(DateTime date, Encoding encoding, Func<FastCsvReader, object> readId)
 			: base(date)
 		{
-			if (encoding == null)
-				throw new ArgumentNullException(nameof(encoding));
-
-			_encoding = encoding;
+			_encoding = encoding ?? throw new ArgumentNullException(nameof(encoding));
 			_readId = readId;
 		}
 
@@ -59,8 +56,8 @@ namespace StockSharp.Algo.Storages.Csv
 
 		public override object LastId
 		{
-			get { return _lastId; }
-			set { _lastId = value; }
+			get => _lastId;
+			set => _lastId = value;
 		}
 
 		public override void Write(Stream stream)
@@ -84,7 +81,7 @@ namespace StockSharp.Algo.Storages.Csv
 
 					if (!firstTimeRead)
 					{
-						FirstTime = CsvBase.ReadTime(reader, Date).UtcDateTime;
+						FirstTime = reader.ReadTime(Date).UtcDateTime;
 						firstTimeRead = true;
 					}
 
@@ -100,7 +97,7 @@ namespace StockSharp.Algo.Storages.Csv
 					if (!reader.NextLine())
 						throw new InvalidOperationException();
 
-					LastTime = CsvBase.ReadTime(reader, Date).UtcDateTime;
+					LastTime = reader.ReadTime(Date).UtcDateTime;
 					_lastId = _readId?.Invoke(reader);
 				}
 
@@ -110,50 +107,10 @@ namespace StockSharp.Algo.Storages.Csv
 	}
 
 	/// <summary>
-	/// CSV helper class.
-	/// </summary>
-	public abstract class CsvBase
-	{
-		/// <summary>
-		/// <see cref="DateTime"/> format.
-		/// </summary>
-		public const string DateFormat = "yyyyMMdd";
-
-		/// <summary>
-		/// <see cref="TimeSpan"/> format.
-		/// </summary>
-		public const string TimeFormat = "HHmmssfff";
-
-		/// <summary>
-		/// <see cref="DateTime"/> parser.
-		/// </summary>
-		public static readonly FastDateTimeParser DateParser = new FastDateTimeParser(DateFormat);
-
-		/// <summary>
-		/// <see cref="TimeSpan"/> parser.
-		/// </summary>
-		public static readonly FastTimeSpanParser TimeParser = new FastTimeSpanParser(TimeFormat.ToLowerInvariant());
-
-		/// <summary>
-		/// Read <see cref="DateTimeOffset"/>.
-		/// </summary>
-		/// <param name="reader">CSV reader.</param>
-		/// <param name="date">Date.</param>
-		/// <returns><see cref="DateTimeOffset"/>.</returns>
-		internal static DateTimeOffset ReadTime(FastCsvReader reader, DateTime date)
-		{
-			if (reader == null)
-				throw new ArgumentNullException(nameof(reader));
-
-			return (date + TimeParser.Parse(reader.ReadString())).ToDateTimeOffset(TimeSpan.Parse(reader.ReadString().Remove("+")));
-		}
-	}
-
-	/// <summary>
 	/// The serializer in the CSV format.
 	/// </summary>
 	/// <typeparam name="TData">Data type.</typeparam>
-	public abstract class CsvMarketDataSerializer<TData> : CsvBase, IMarketDataSerializer<TData>
+	public abstract class CsvMarketDataSerializer<TData> : IMarketDataSerializer<TData>
 	{
 		// ReSharper disable StaticFieldInGenericType
 		private static readonly UTF8Encoding _utf = new UTF8Encoding(false);
@@ -164,7 +121,7 @@ namespace StockSharp.Algo.Storages.Csv
 		/// </summary>
 		/// <param name="encoding">Encoding.</param>
 		protected CsvMarketDataSerializer(Encoding encoding = null)
-			: this(default(SecurityId), encoding)
+			: this(default, encoding)
 		{
 		}
 
@@ -195,6 +152,11 @@ namespace StockSharp.Algo.Storages.Csv
 		public StorageFormats Format => StorageFormats.Csv;
 
 		/// <summary>
+		/// Time precision.
+		/// </summary>
+		public TimeSpan TimePrecision { get; } = TimeSpan.FromMilliseconds(1);
+
+		/// <summary>
 		/// To create empty meta-information.
 		/// </summary>
 		/// <param name="date">Date.</param>
@@ -215,7 +177,7 @@ namespace StockSharp.Algo.Storages.Csv
 		}
 
 		/// <summary>
-		/// Cast data into stream.
+		/// Save data into stream.
 		/// </summary>
 		/// <param name="stream">Data stream.</param>
 		/// <param name="data">Data.</param>
@@ -256,18 +218,9 @@ namespace StockSharp.Algo.Storages.Csv
 
 			public CsvEnumerator(CsvMarketDataSerializer<TData> serializer, FastCsvReader reader, IMarketDataMetaInfo metaInfo)
 			{
-				if (serializer == null)
-					throw new ArgumentNullException(nameof(serializer));
-
-				if (reader == null)
-					throw new ArgumentNullException(nameof(reader));
-
-				if (metaInfo == null)
-					throw new ArgumentNullException(nameof(metaInfo));
-
-				_serializer = serializer;
-				_reader = reader;
-				_metaInfo = metaInfo;
+				_serializer = serializer ?? throw new ArgumentNullException(nameof(serializer));
+				_reader = reader ?? throw new ArgumentNullException(nameof(reader));
+				_metaInfo = metaInfo ?? throw new ArgumentNullException(nameof(metaInfo));
 			}
 
 			public override bool MoveNext()
@@ -275,7 +228,7 @@ namespace StockSharp.Algo.Storages.Csv
 				var retVal = _reader.NextLine();
 
 				if (retVal)
-					Current = _serializer.Read(_reader, _metaInfo.Date);
+					Current = _serializer.Read(_reader, _metaInfo);
 
 				return retVal;
 			}
@@ -307,8 +260,8 @@ namespace StockSharp.Algo.Storages.Csv
 		/// Read data from the specified reader.
 		/// </summary>
 		/// <param name="reader">CSV reader.</param>
-		/// <param name="date">Date.</param>
+		/// <param name="metaInfo">Meta-information on data for one day.</param>
 		/// <returns>Data.</returns>
-		protected abstract TData Read(FastCsvReader reader, DateTime date);
+		protected abstract TData Read(FastCsvReader reader, IMarketDataMetaInfo metaInfo);
 	}
 }

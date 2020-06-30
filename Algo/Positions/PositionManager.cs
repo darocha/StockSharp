@@ -44,19 +44,32 @@ namespace StockSharp.Algo.Positions
 		/// </summary>
 		public bool ByOrders { get; }
 
-		/// <summary>
-		/// The position aggregate value.
-		/// </summary>
+		private SecurityId? _securityId;
+
+		/// <inheritdoc />
+		public SecurityId? SecurityId
+		{
+			get => _securityId;
+			set
+			{
+				_securityId = value;
+
+				lock (_positions.SyncRoot)
+				{
+					UpdatePositionValue(_positions);
+				}
+			}
+		}
+
+		/// <inheritdoc />
 		public decimal Position { get; set; }
 
 		private readonly CachedSynchronizedDictionary<Tuple<SecurityId, string>, decimal> _positions = new CachedSynchronizedDictionary<Tuple<SecurityId, string>, decimal>();
 
-		/// <summary>
-		/// Positions, grouped by instruments and portfolios.
-		/// </summary>
+		/// <inheritdoc />
 		public IEnumerable<KeyValuePair<Tuple<SecurityId, string>, decimal>> Positions
 		{
-			get { return _positions.CachedPairs; }
+			get => _positions.CachedPairs;
 			set
 			{
 				if (value == null)
@@ -65,37 +78,37 @@ namespace StockSharp.Algo.Positions
 				lock (_positions.SyncRoot)
 				{
 					_byOrderPositions.Clear();
-                    _positions.Clear();
+
+					_positions.Clear();
 					_positions.AddRange(value);
 
-					Position = value.Sum(p => p.Value);
+					UpdatePositionValue(value);
 				}
 			}
 		}
 
-		/// <summary>
-		/// The event of new position occurrence in <see cref="IPositionManager.Positions"/>.
-		/// </summary>
+		private void UpdatePositionValue(IEnumerable<KeyValuePair<Tuple<SecurityId, string>, decimal>> positions)
+		{
+			var secId = SecurityId;
+
+			Position = secId == null
+				? positions.Sum(p => p.Value)
+				: positions.Where(p => p.Key.Item1 == secId.Value).Sum(p => p.Value);
+		}
+
+		/// <inheritdoc />
 		public event Action<Tuple<SecurityId, string>, decimal> NewPosition;
 
-		/// <summary>
-		/// The event of position change in <see cref="IPositionManager.Positions"/>.
-		/// </summary>
+		/// <inheritdoc />
 		public event Action<Tuple<SecurityId, string>, decimal> PositionChanged;
 
-		/// <summary>
-		/// To null position.
-		/// </summary>
+		/// <inheritdoc />
 		public virtual void Reset()
 		{
 			Positions = Enumerable.Empty<KeyValuePair<Tuple<SecurityId, string>, decimal>>();
 		}
 
-		/// <summary>
-		/// To calculate position.
-		/// </summary>
-		/// <param name="message">Message.</param>
-		/// <returns>The position by order or trade.</returns>
+		/// <inheritdoc />
 		public decimal? ProcessMessage(Message message)
 		{
 			switch (message.Type)
@@ -120,63 +133,69 @@ namespace StockSharp.Algo.Positions
 							break;
 
 						bool isNew;
-						decimal position;
+						decimal diff;
+						decimal abs;
 
 						lock (_positions.SyncRoot)
 						{
-							decimal prev;
-							isNew = _positions.TryGetValue(key, out prev);
+							isNew = !_positions.TryGetValue(key, out var prev);
 
-							Tuple<Sides, decimal> oldPosition;
-
-							if (_byOrderPositions.TryGetValue(orderId, out oldPosition))
+							if (_byOrderPositions.TryGetValue(orderId, out var oldPosition))
 							{
 								if (newPosition.Value != oldPosition.Item2)
 									_byOrderPositions[orderId] = Tuple.Create(execMsg.Side, newPosition.Value);
 
-								position = newPosition.Value - oldPosition.Item2;
+								diff = newPosition.Value - oldPosition.Item2;
 							}
 							else
 							{
 								_byOrderPositions.Add(orderId, Tuple.Create(execMsg.Side, newPosition.Value));
-								position = newPosition.Value;
+								diff = newPosition.Value;
 							}
 
-							_positions[key] = prev + position;
-							Position += position;
+							abs = prev + diff;
+
+							_positions[key] = abs;
+
+							if (SecurityId == null || SecurityId.Value == execMsg.SecurityId)
+								Position += diff;
 						}
 
 						if (isNew)
-							NewPosition?.Invoke(key, Position);
+							NewPosition?.Invoke(key, abs);
 						else
-							PositionChanged?.Invoke(key, Position);
+							PositionChanged?.Invoke(key, abs);
 
-						return position;
+						return diff;
 					}
 
 					if (!ByOrders && execMsg.HasTradeInfo())
 					{
-						var position = execMsg.GetPosition(false);
+						var diff = execMsg.GetPosition(false);
 
-						if (position == null || position == 0)
+						if (diff == null || diff == 0)
 							break;
 
 						bool isNew;
+						decimal abs;
 
 						lock (_positions.SyncRoot)
 						{
-							decimal prev;
-							isNew = _positions.TryGetValue(key, out prev);
-							_positions[key] = prev + position.Value;
-							Position += position.Value;
+							isNew = !_positions.TryGetValue(key, out var prev);
+							abs = prev + diff.Value;
+
+							_positions[key] = abs;
+
+							if (SecurityId == null || SecurityId.Value == execMsg.SecurityId)
+								Position += diff.Value;
 						}
 
 						if (isNew)
-							NewPosition?.Invoke(key, Position);
+							NewPosition?.Invoke(key, abs);
 						else
-							PositionChanged?.Invoke(key, Position);
+							PositionChanged?.Invoke(key, abs);
 
-						return position;
+						return diff;
 					}
 
 					break;

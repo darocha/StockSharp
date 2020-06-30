@@ -22,10 +22,18 @@ namespace StockSharp.Algo.Storages.Csv
 
 	using StockSharp.Messages;
 
+	class NullableTimeQuoteChange
+	{
+		public DateTimeOffset ServerTime { get; set; }
+		public DateTimeOffset LocalTime { get; set; }
+		public QuoteChange? Quote { get; set; }
+		public Sides Side { get; set; }
+	}
+
 	/// <summary>
 	/// The quote serializer in the CSV format.
 	/// </summary>
-	public class QuoteCsvSerializer : CsvMarketDataSerializer<TimeQuoteChange>
+	class QuoteCsvSerializer : CsvMarketDataSerializer<NullableTimeQuoteChange>
 	{
 		/// <summary>
 		/// Initializes a new instance of the <see cref="QuoteCsvSerializer"/>.
@@ -37,41 +45,60 @@ namespace StockSharp.Algo.Storages.Csv
 		{
 		}
 
-		/// <summary>
-		/// Write data to the specified writer.
-		/// </summary>
-		/// <param name="writer">CSV writer.</param>
-		/// <param name="data">Data.</param>
-		/// <param name="metaInfo">Meta-information on data for one day.</param>
-		protected override void Write(CsvFileWriter writer, TimeQuoteChange data, IMarketDataMetaInfo metaInfo)
+		/// <inheritdoc />
+		protected override void Write(CsvFileWriter writer, NullableTimeQuoteChange data, IMarketDataMetaInfo metaInfo)
 		{
+			var quote = data.Quote;
+
 			writer.WriteRow(new[]
 			{
-				data.ServerTime.UtcDateTime.ToString(TimeFormat),
+				data.ServerTime.WriteTimeMls(),
 				data.ServerTime.ToString("zzz"),
-				data.Price.ToString(),
-				data.Volume.ToString(),
-				data.Side.ToString()
+				quote?.Price.To<string>(),
+				quote?.Volume.To<string>(),
+				data.Side.To<string>(),
+				quote?.OrdersCount.To<string>(),
+				quote?.Condition.To<string>(),
 			});
 
 			metaInfo.LastTime = data.ServerTime.UtcDateTime;
 		}
 
-		/// <summary>
-		/// Read data from the specified reader.
-		/// </summary>
-		/// <param name="reader">CSV reader.</param>
-		/// <param name="date">Date.</param>
-		/// <returns>Data.</returns>
-		protected override TimeQuoteChange Read(FastCsvReader reader, DateTime date)
+		/// <inheritdoc />
+		protected override NullableTimeQuoteChange Read(FastCsvReader reader, IMarketDataMetaInfo metaInfo)
 		{
-			return new TimeQuoteChange
+			var quote = new NullableTimeQuoteChange
 			{
-				ServerTime = ReadTime(reader, date),
-				Price = reader.ReadDecimal(),
-				Volume = reader.ReadDecimal(),
-				Side = reader.ReadEnum<Sides>()
+				ServerTime = reader.ReadTime(metaInfo.Date),
 			};
+
+			var price = reader.ReadNullableDecimal();
+			var volume = reader.ReadNullableDecimal();
+
+			quote.Side = reader.ReadEnum<Sides>();
+
+			int? ordersCount = null;
+
+			if ((reader.ColumnCurr + 1) < reader.ColumnCount)
+				ordersCount = reader.ReadNullableInt();
+
+			QuoteConditions condition = default;
+
+			if ((reader.ColumnCurr + 1) < reader.ColumnCount)
+				condition = reader.ReadNullableEnum<QuoteConditions>() ?? default;
+
+			if (price != null)
+			{
+				quote.Quote = new QuoteChange
+				{
+					Price = price.Value,
+					Volume = volume ?? 0,
+					OrdersCount = ordersCount,
+					Condition = condition,
+				};
+			}
+
+			return quote;
 		}
 	}
 }
